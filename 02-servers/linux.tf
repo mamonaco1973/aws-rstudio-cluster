@@ -88,7 +88,7 @@ resource "aws_instance" "efs_client_instance" {
     efs_mnt_server = aws_efs_mount_target.efs_mnt_1.dns_name
     netbios        = var.netbios
     realm          = var.realm
-    force_group    = "mcloud-users"
+    force_group    = "rstudio-users"
   })
 
   # ----------------------------------------------------------------------------------------------
@@ -96,7 +96,7 @@ resource "aws_instance" "efs_client_instance" {
   # ----------------------------------------------------------------------------------------------
   # Standard AWS tagging for identification, cost tracking, and automation workflows.
   tags = {
-    Name = "efs-client-instance"
+    Name = "efs-samba-gateway"
   }
 
   # ----------------------------------------------------------------------------------------------

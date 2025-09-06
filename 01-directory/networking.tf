@@ -1,7 +1,8 @@
 # ================================================================================================
 # Network baseline for mini-AD
-# - One VPC with a public "vm" subnet (bastion/utility) and a private "ad" subnet (DCs)
-# - Internet egress for public subnet via IGW; private subnet egress via NAT
+# - One VPC with public "vm" subnets (bastion/utility), a new public "pub-subnet" (for NAT),
+#   and a private "ad-subnet" (Domain Controllers)
+# - Internet egress for public subnets via IGW; private subnet egress via NAT in pub-subnet
 # - AZs/CIDRs are examples—align to your region and IP plan
 # ================================================================================================
 
@@ -17,7 +18,7 @@ resource "aws_vpc" "ad-vpc" {
 }
 
 # -----------------------------------
-# Internet Gateway (egress for public subnet)
+# Internet Gateway (egress for public subnets)
 # -----------------------------------
 resource "aws_internet_gateway" "ad-igw" {
   vpc_id = aws_vpc.ad-vpc.id
@@ -26,33 +27,42 @@ resource "aws_internet_gateway" "ad-igw" {
 
 # -----------------------------------
 # Subnets
-# - vm-subnet-1 (public): bastion/utility VMs, direct path to IGW
-# - vm-subnet-2 (public): bastion/utility VMs, direct path to IGW
-# - ad-subnet (private): DCs/AD services, egress via NAT only
+# - vm-subnet-1 (public): bastion/utility VMs, AZ6
+# - vm-subnet-2 (public): bastion/utility VMs, AZ4
+# - pub-subnet   (public): new public subnet for NAT, same AZ as ad-subnet (AZ4)
+# - ad-subnet    (private): DCs/AD services, NAT egress only
 # -----------------------------------
 resource "aws_subnet" "vm-subnet-1" {
   vpc_id                  = aws_vpc.ad-vpc.id
   cidr_block              = "10.0.0.64/26" # ~62 usable IPs
-  map_public_ip_on_launch = true           # Auto-assign public IPv4
+  map_public_ip_on_launch = true
   availability_zone_id    = "use1-az6"
 
   tags = { Name = "vm-subnet-1" }
 }
 
-# resource "aws_subnet" "vm-subnet-2" {
-#   vpc_id                  = aws_vpc.ad-vpc.id
-#   cidr_block              = "10.0.0.128/26" # ~62 usable IPs, next available range
-#   map_public_ip_on_launch = true            # Auto-assign public IPv4
-#   availability_zone_id    = "use1-az4"
+resource "aws_subnet" "vm-subnet-2" {
+  vpc_id                  = aws_vpc.ad-vpc.id
+  cidr_block              = "10.0.0.128/26" # ~62 usable IPs
+  map_public_ip_on_launch = true
+  availability_zone_id    = "use1-az4"
 
-#   tags = { Name = "vm-subnet-2" }
-# }
+  tags = { Name = "vm-subnet-2" }
+}
 
+resource "aws_subnet" "pub-subnet" {
+  vpc_id                  = aws_vpc.ad-vpc.id
+  cidr_block              = "10.0.0.192/26" # next available /26 block
+  map_public_ip_on_launch = true
+  availability_zone_id    = "use1-az4"       # same AZ as ad-subnet
+
+  tags = { Name = "pub-subnet" }
+}
 
 resource "aws_subnet" "ad-subnet" {
   vpc_id                  = aws_vpc.ad-vpc.id
   cidr_block              = "10.0.0.0/26" # ~62 usable IPs
-  map_public_ip_on_launch = false         # Private-only
+  map_public_ip_on_launch = false
   availability_zone_id    = "use1-az4"
 
   tags = { Name = "ad-subnet" }
@@ -66,12 +76,12 @@ resource "aws_eip" "nat_eip" {
 }
 
 # -----------------------------------
-# NAT Gateway (must live in a public subnet)
+# NAT Gateway (lives in pub-subnet)
 # Provides outbound internet for instances in private subnets
 # -----------------------------------
 resource "aws_nat_gateway" "ad_nat" {
-  subnet_id     = aws_subnet.vm-subnet-1.id # Public subnet placement
-  allocation_id = aws_eip.nat_eip.id        # EIP attachment
+  subnet_id     = aws_subnet.pub-subnet.id
+  allocation_id = aws_eip.nat_eip.id
   tags          = { Name = "ad-nat" }
 }
 
@@ -110,10 +120,15 @@ resource "aws_route_table_association" "rt_assoc_vm_public" {
   route_table_id = aws_route_table.public.id
 }
 
-# resource "aws_route_table_association" "rt_assoc_vm_public_2" {
-#   subnet_id      = aws_subnet.vm-subnet-2.id
-#   route_table_id = aws_route_table.public.id
-# }
+resource "aws_route_table_association" "rt_assoc_vm_public_2" {
+  subnet_id      = aws_subnet.vm-subnet-2.id
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_route_table_association" "rt_assoc_pub_public" {
+  subnet_id      = aws_subnet.pub-subnet.id
+  route_table_id = aws_route_table.public.id
+}
 
 resource "aws_route_table_association" "rt_assoc_ad_private" {
   subnet_id      = aws_subnet.ad-subnet.id
