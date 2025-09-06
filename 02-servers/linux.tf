@@ -62,7 +62,7 @@ resource "aws_instance" "efs_client_instance" {
   ]
 
   # Assigns a public IP to the instance at launch (enables external SSH/RDP if allowed by SGs).
-  associate_public_ip_address = true
+  associate_public_ip_address = false
 
   # ----------------------------------------------------------------------------------------------
   # IAM Role / Instance Profile

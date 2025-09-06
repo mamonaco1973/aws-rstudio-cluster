@@ -5,7 +5,7 @@
     "userBaseDn": "${USER_BASE_DN}"
   },
   "groups": [
-    { "name": "rstudio-users", " gidNumber": 10001 },
+    { "name": "${lower(NETBIOS)}-users",  "gidNumber": 10001 },
     { "name": "us",             "gidNumber": 10002 },
     { "name": "india",          "gidNumber": 10003 },
     { "name": "linux-admins",   "gidNumber": 10004 },
@@ -19,7 +19,7 @@
       "password": "${jsmith_password}",
       "uidNumber": 10001,
       "gidNumber": 10001,
-      "primaryGroup": "rstudio-users",
+      "primaryGroup": "${lower(NETBIOS)}-users",
       "extraGroups": ["us", "linux-admins", "rstudio-admins", "Domain Admins"]
     },
     {
@@ -29,7 +29,7 @@
       "password": "${edavis_password}",
       "uidNumber": 10002,
       "gidNumber": 10001,
-      "primaryGroup": "rstudio-users",
+      "primaryGroup": "${lower(NETBIOS)}-users",
       "extraGroups": ["us"]
     },
     {
@@ -39,7 +39,7 @@
       "password": "${rpatel_password}",
       "uidNumber": 10003,
       "gidNumber": 10001,
-      "primaryGroup": "rstudio-users",
+      "primaryGroup": "${lower(NETBIOS)}-users",
       "extraGroups": ["india", "linux-admins", "rstudio-admins", "Domain Admins"]
     },
     {
@@ -49,7 +49,7 @@
       "password": "${akumar_password}",
       "uidNumber": 10004,
       "gidNumber": 10001,
-      "primaryGroup": "rstudio-users",
+      "primaryGroup": "${lower(NETBIOS)}-users",
       "extraGroups": ["india"]
     }
   ]
