@@ -58,10 +58,12 @@ resource "aws_instance" "windows_ad_instance" {
   # - admin_secret   : AWS Secrets Manager entry for admin credentials
   # - domain_fqdn    : Fully Qualified Domain Name of the AD environment
   # - samba_server   : Private DNS name of the Samba/EFS client instance (for integration)
+  # - rdp_group      : AD group granted RDP access to this admin server
   user_data = templatefile("./scripts/userdata.ps1", {
     admin_secret = "admin_ad_credentials"
     domain_fqdn  = var.dns_zone
     samba_server = aws_instance.efs_gateway_instance.private_dns
+    rdp_group    = "rstudio-users"
   })
 
   # ----------------------------------------------------------------------------------------------

@@ -71,10 +71,10 @@ Add-Computer -DomainName "${domain_fqdn}" -Credential $cred -Force
 # Grant RDP Access to AD Group
 # --------------------------------------------------------------------------------
 
-Write-Output "Configuring RDP access for AD group 'mcloud-users'..."
+Write-Output "Configuring RDP access for AD group '${rdp_group}'..."
 
 # Define AD group that should be added to the local Remote Desktop Users group
-$domainGroup = "MCLOUD\mcloud-users"
+$domainGroup = "${netbios}\\${rdp_group}"
 
 # Retry logic (up to 10 attempts) to handle timing issues with domain join
 $maxRetries = 10
