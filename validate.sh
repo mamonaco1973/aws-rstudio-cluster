@@ -28,7 +28,7 @@ windows_dns=$(aws ec2 describe-instances \
 if [ -z "$windows_dns" ]; then
   echo "WARN: No Windows AD instance found with tag Name=windows-ad-admin"
 else
-  echo "NOTE: Windows Instance DNS: $(echo $windows_dns | xargs)"
+  echo "NOTE: Windows Instance FQDN: $(echo $windows_dns | xargs)"
 fi
 
 # --------------------------------------------------------------------------------------------------
@@ -42,5 +42,5 @@ linux_dns=$(aws ec2 describe-instances \
 if [ -z "$linux_dns" ]; then
   echo "WARN: No EFS client instance found with tag Name=efs-samba-gateway"
 else
-  echo "NOTE: EFS Client Instance DNS:   $(echo $linux_dns | xargs)"
+  echo "NOTE: EFS Client Instance FQDN:   $(echo $linux_dns | xargs)"
 fi
