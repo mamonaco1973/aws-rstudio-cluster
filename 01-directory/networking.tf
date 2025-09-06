@@ -117,12 +117,17 @@ resource "aws_route" "private_default" {
 # -----------------------------------
 resource "aws_route_table_association" "rt_assoc_vm_public" {
   subnet_id      = aws_subnet.vm-subnet-1.id
-  route_table_id = aws_route_table.public.id
+  route_table_id = aws_route_table.private.id
 }
 
 resource "aws_route_table_association" "rt_assoc_vm_public_2" {
-  subnet_id      = aws_subnet.vm-subnet-2.id
-  route_table_id = aws_route_table.public.id
+  subnet_id       = aws_subnet.vm-subnet-2.id
+   route_table_id = aws_route_table.private.id
+}
+
+resource "aws_route_table_association" "rt_assoc_ad_private" {
+  subnet_id      = aws_subnet.ad-subnet.id
+  route_table_id = aws_route_table.private.id
 }
 
 resource "aws_route_table_association" "rt_assoc_pub_public" {
@@ -130,7 +135,3 @@ resource "aws_route_table_association" "rt_assoc_pub_public" {
   route_table_id = aws_route_table.public.id
 }
 
-resource "aws_route_table_association" "rt_assoc_ad_private" {
-  subnet_id      = aws_subnet.ad-subnet.id
-  route_table_id = aws_route_table.private.id
-}
