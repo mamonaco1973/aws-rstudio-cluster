@@ -176,11 +176,10 @@ winbind use default domain = yes
 winbind normalize names = yes
 winbind refresh tickets = yes
 winbind offline logon = yes
-winbind enum groups = yes
-winbind enum users = yes
+winbind enum groups = no
+winbind enum users = no
 winbind cache time = 30
 idmap cache time = 60
-winbind negative cache time = 0
 
 [homes]
 comment = Home Directories
@@ -251,8 +250,8 @@ su -c "exit" akumar
 su -c "exit" edavis
 
 # Set EFS directory ownership and permissions
-chgrp mcloud-users /efs
-chgrp mcloud-users /efs/data
+chgrp rstudio-users /efs
+chgrp rstudio-users /efs/data
 chmod 770 /efs
 chmod 770 /efs/data
 chmod 700 /home/*
@@ -260,7 +259,7 @@ chmod 700 /home/*
 cd /efs
 git clone https://github.com/mamonaco1973/aws-efs.git
 chmod -R 775 aws-efs
-chgrp -R mcloud-users aws-efs
+chgrp -R rstudio-users aws-efs
 
 
 # =================================================================================
