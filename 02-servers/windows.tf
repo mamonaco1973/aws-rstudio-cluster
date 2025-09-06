@@ -61,7 +61,7 @@ resource "aws_instance" "windows_ad_instance" {
   user_data = templatefile("./scripts/userdata.ps1", {
     admin_secret = "admin_ad_credentials"
     domain_fqdn  = var.dns_zone
-    samba_server = aws_instance.efs_client_instance.private_dns
+    samba_server = aws_instance.efs_gateway_instance.private_dns
   })
 
   # ----------------------------------------------------------------------------------------------

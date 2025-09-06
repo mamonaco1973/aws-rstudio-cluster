@@ -35,7 +35,7 @@ data "aws_ami" "ubuntu_ami" {
 # Provisions an Ubuntu 24.04 EC2 instance that mounts an Amazon EFS file system and
 # integrates into an Active Directory (AD) environment.
 # ================================================================================================
-resource "aws_instance" "efs_client_instance" {
+resource "aws_instance" "efs_gateway_instance" {
 
   # ----------------------------------------------------------------------------------------------
   # Amazon Machine Image (AMI)
