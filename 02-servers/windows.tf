@@ -64,6 +64,7 @@ resource "aws_instance" "windows_ad_instance" {
     domain_fqdn  = var.dns_zone
     samba_server = aws_instance.efs_gateway_instance.private_dns
     rdp_group    = "rstudio-users"
+    netbios      = var.netbios
   })
 
   # ----------------------------------------------------------------------------------------------
