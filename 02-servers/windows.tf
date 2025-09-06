@@ -75,7 +75,7 @@ resource "aws_instance" "windows_ad_instance" {
   # ----------------------------------------------------------------------------------------------
   # Dependencies
   # ----------------------------------------------------------------------------------------------
-  # Ensure that the Samba/EFS client instance is created first,
+  # Ensure that the Samba/EFS gateway instance is created first,
   # since this admin box may connect to it for management tasks.
-  depends_on = [aws_instance.efs_client_instance]
+  depends_on = [aws_instance.efs_gateway_instance]
 }
