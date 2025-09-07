@@ -51,19 +51,19 @@ data "aws_vpc" "ad_vpc" {
 }
 
 data "aws_ami" "latest_rstudio_ami" {
-  most_recent = true                    # Return the most recently created AMI matching filters
+  most_recent = true # Return the most recently created AMI matching filters
 
   filter {
-    name   = "name"                     # Filter AMIs by name pattern
-    values = ["rstudio_ami*"]           # Match AMI names starting with "rstudio_ami"
+    name   = "name"           # Filter AMIs by name pattern
+    values = ["rstudio_ami*"] # Match AMI names starting with "rstudio_ami"
   }
 
   filter {
-    name   = "state"                    # Filter AMIs by state
-    values = ["available"]              # Ensure AMI is in 'available' state
+    name   = "state"       # Filter AMIs by state
+    values = ["available"] # Ensure AMI is in 'available' state
   }
 
-  owners = ["self"]                     # Limit to AMIs owned by current AWS account
+  owners = ["self"] # Limit to AMIs owned by current AWS account
   # Use your AWS Account ID instead of "self" if pulling from a shared account
 }
 

@@ -46,7 +46,7 @@ resource "aws_security_group" "efs_sg" {
 # - encrypted: Enables at-rest encryption for security.
 # ===================================================================
 resource "aws_efs_file_system" "efs" {
-  encrypted      = true
+  encrypted = true
   tags = {
     Name = "mcloud-efs"
   }
