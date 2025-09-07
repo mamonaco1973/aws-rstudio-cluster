@@ -36,7 +36,7 @@ variable "region" {
 }
 
 variable "instance_type" {
-  default = "t3.small"                                   # Default instance type: t3.small
+  default = "t3.medium"                                  # Default instance type: t3.medium
 }
 
 variable "vpc_id" {
