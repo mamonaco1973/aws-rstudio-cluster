@@ -56,7 +56,7 @@ variable "subnet_id" {
 source "amazon-ebs" "ubuntu_ami" {
   region                = var.region                     # Use configured AWS region
   instance_type         = var.instance_type              # Use configured EC2 instance type
-  source_ami            = data.amazon-ami.linux-base-os-image.id  # Use latest Ubuntu 24.04 AMI
+  source_ami            = data.amazon-ami.ubuntu_2404.id 
   ssh_username          = "ubuntu"                       # Default Ubuntu AMI login user
   ami_name              = "rstudio_ami_${replace(timestamp(), ":", "-")}" # Unique AMI name using timestamp
   ssh_interface         = "public_ip"                    # Use public IP for provisioning connection
