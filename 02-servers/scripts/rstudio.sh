@@ -43,25 +43,42 @@ export DEBIAN_FRONTEND=noninteractive
 #   - Home directory automation: oddjob, oddjob-mkhomedir
 #   - Utilities: less, unzip, nano, vim, nfs-common, stunnel4
 
+echo "=== Phase 1: Base utilities and AD join tools ===" >> /root/userdata.log 2>&1
+
 apt-get install -y less unzip realmd sssd-ad sssd-tools libnss-sss \
     libpam-sss adcli samba-common-bin samba-libs oddjob \
     oddjob-mkhomedir packagekit krb5-user nano vim stunnel4 \
-    nfs-common \
-    build-essential gfortran \
-    libxml2-dev libcurl4-openssl-dev libssl-dev \
-    libgsl-dev libblas-dev liblapack-dev \
-    libpng-dev libjpeg-dev libtiff5-dev libgif-dev \
-    zlib1g-dev libbz2-dev liblzma-dev xz-utils \
-    libpcre2-dev libreadline-dev libedit-dev \
-    libsqlite3-dev libpq-dev libmariadb-dev \
-    libcairo2-dev libxt-dev libx11-dev libxpm-dev \
-    libfreetype6-dev libharfbuzz-dev libfribidi-dev \
-    libudunits2-dev libgeos-dev libproj-dev libgdal-dev \
-    libmagick++-dev libpoppler-cpp-dev \
-    libhdf5-dev libnetcdf-dev \
-    default-jdk \
-    texlive-latex-base texlive-fonts-recommended texlive-fonts-extra texlive-latex-extra \
-    >> /root/userdata.log 2>&1
+    nfs-common >> /root/userdata.log 2>&1
+
+echo "=== Phase 2: Core build chain for R ===" >> /root/userdata.log 2>&1
+apt-get install -y build-essential gfortran \
+    libxml2-dev libcurl4-openssl-dev libssl-dev >> /root/userdata.log 2>&1
+
+echo "=== Phase 3: Math & compression libraries ===" >> /root/userdata.log 2>&1
+apt-get install -y libgsl-dev libblas-dev liblapack-dev \
+    zlib1g-dev libbz2-dev liblzma-dev >> /root/userdata.log 2>&1
+
+echo "=== Phase 4: Graphics & text stack ===" >> /root/userdata.log 2>&1
+apt-get install -y libcairo2-dev libxt-dev libx11-dev libxpm-dev \
+    libfreetype6-dev libharfbuzz-dev libfribidi-dev >> /root/userdata.log 2>&1
+
+echo "=== Phase 5: Database & spatial libraries ===" >> /root/userdata.log 2>&1
+apt-get install -y libsqlite3-dev libpq-dev libmariadb-dev \
+    libudunits2-dev libgeos-dev libproj-dev libgdal-dev >> /root/userdata.log 2>&1
+
+echo "=== Phase 6: Extra formats and science libs ===" >> /root/userdata.log 2>&1
+apt-get install -y libmagick++-dev libpoppler-cpp-dev \
+    libhdf5-dev libnetcdf-dev default-jdk >> /root/userdata.log 2>&1
+
+echo "=== Phase 7: LaTeX (optional, heavy) ===" >> /root/userdata.log 2>&1
+apt-get install -y texlive-latex-base texlive-fonts-recommended \
+    texlive-fonts-extra texlive-latex-extra >> /root/userdata.log 2>&1
+
+echo "=== Phase 8: Clean up ===" >> /root/userdata.log 2>&1
+apt-get autoremove -y >> /root/userdata.log 2>&1
+apt-get clean >> /root/userdata.log 2>&1
+
+echo "=== Userdata completed successfully ==="  >> /root/userdata.log 2>&1
 
 # Install Amazon EFS utilities (for mounting EFS with TLS support)
 cd /tmp
