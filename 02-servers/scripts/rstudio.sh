@@ -117,7 +117,16 @@ cd /tmp
 wget https://download2.rstudio.org/server/jammy/amd64/rstudio-server-2025.05.1-513-amd64.deb
 sudo apt-get install -y ./rstudio-server-2025.05.1-513-amd64.deb
 
-# `---------------------------------------------------------------------------------`
+cat <<'EOF' | sudo tee /etc/pam.d/rstudio > /dev/null
+# PAM configuration for RStudio Server
+
+auth     include   common-auth
+account  include   common-account
+password include   common-password
+session  include   common-session
+EOF
+
+# ---------------------------------------------------------------------------------
 # Section 3: Mount Amazon EFS File System
 # ---------------------------------------------------------------------------------
 # Prepare mount points for shared storage (/efs, /home, /data)
@@ -168,6 +177,7 @@ sudo sed -i 's/ldap_id_mapping = True/ldap_id_mapping = False/g' \
     /etc/sssd/sssd.conf
 sudo sed -i 's|fallback_homedir = /home/%u@%d|fallback_homedir = /home/%u|' \
     /etc/sssd/sssd.conf
+sudo sed -i 's/^access_provider = ad$/access_provider = simple\nsimple_allow_groups = ${force_group}/' /etc/sssd/sssd.conf
 
 # Prevent XAuthority warnings for new AD users
 touch /etc/skel/.Xauthority
@@ -176,6 +186,9 @@ chmod 600 /etc/skel/.Xauthority
 # Enable automatic home directory creation and restart services
 sudo pam-auth-update --enable mkhomedir
 sudo systemctl restart ssh
+sudo systemctl restart sssd
+sudo systemctl restart rstudio-server
+sudo systemctl enable rstudio-server
 
 # ---------------------------------------------------------------------------------
 # Section 7: Grant Sudo Privileges to AD Admin Group
