@@ -38,7 +38,7 @@ resource "aws_instance" "rstudio_instance" {
   # ----------------------------------------------------------------------------------------------
   # Attaches an IAM instance profile that grants the EC2 instance permissions to interact
   # with AWS services (e.g., Secrets Manager for credential retrieval, SSM for management).
-  iam_instance_profile = aws_iam_instance_profile.ec2_secrets_profile.name
+  iam_instance_profile = data.aws_iam_instance_profile.ec2_secrets_profile.name
 
   # ----------------------------------------------------------------------------------------------
   # User Data (Bootstrapping)

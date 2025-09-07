@@ -66,3 +66,8 @@ data "aws_ami" "latest_rstudio_ami" {
   owners = ["self"]                     # Limit to AMIs owned by current AWS account
   # Use your AWS Account ID instead of "self" if pulling from a shared account
 }
+
+# Look up an existing IAM instance profile
+data "aws_iam_instance_profile" "ec2_secrets_profile" {
+  name = "EC2SecretsInstanceProfile-${var.netbios}"
+}
