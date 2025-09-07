@@ -16,20 +16,15 @@ packer {
 # DATA SOURCE: BASE UBUNTU 24.04 (Noble) AMI
 ############################################
 
-data "aws_ami" "ubuntu_2404" {
+data "amazon-ami" "ubuntu_2404" {
+  filters = {
+    name                = "ubuntu/images/hvm-ssd/ubuntu-noble-24.04-amd64-server-*"
+    virtualization-type = "hvm"
+    root-device-type    = "ebs"
+  }
+
   most_recent = true
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-noble-24.04-amd64-server-*"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  owners = ["099720109477"] # Canonical
+  owners      = ["099720109477"] # Canonical
 }
 
 ############################################
