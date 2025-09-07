@@ -18,7 +18,7 @@ packer {
 
 data "amazon-ami" "ubuntu_2404" {
   filters = {
-    name                = "ubuntu/images/hvm-ssd/ubuntu-noble-24.04-amd64-server-*"
+    name                = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"
     virtualization-type = "hvm"
     root-device-type    = "ebs"
   }
