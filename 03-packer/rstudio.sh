@@ -9,7 +9,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y software-properties-common dirmngr
 apt-get update
-apt-get install -y r-base r-base-dev
+apt-get install -y r-base r-base-dev jsonlite png reticulate
 
 # ---------------------------------------------------------------------------------
 # Install RStudio Community Edition
