@@ -54,7 +54,7 @@ resource "aws_instance" "rstudio_instance" {
   user_data = templatefile("./scripts/rstudio.sh", {
     admin_secret   = "admin_ad_credentials"
     domain_fqdn    = var.dns_zone
-    efs_mnt_server = aws_efs_mount_target.efs_mnt_1.dns_name
+    efs_mnt_server = data.aws_efs_file_system.efs.dns_name
     netbios        = var.netbios
     realm          = var.realm
     force_group    = "rstudio-users"

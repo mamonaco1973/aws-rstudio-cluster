@@ -71,3 +71,11 @@ data "aws_ami" "latest_rstudio_ami" {
 data "aws_iam_instance_profile" "ec2_secrets_profile" {
   name = "EC2SecretsInstanceProfile-${var.netbios}"
 }
+
+
+# Lookup an existing EFS file system by its Name tag
+data "aws_efs_file_system" "efs" {
+  tags = {
+    Name = "mcloud-efs"
+  }
+}
