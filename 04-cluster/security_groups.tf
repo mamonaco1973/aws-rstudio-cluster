@@ -3,7 +3,7 @@
 # Used to allow web access to the RStudio Server interface
 # ------------------------------------------------------------
 resource "aws_security_group" "rstudio_sg" {
-  name        = "rstudio-security-group"              # Security Group name
+  name        = "rstudio-security-group-${var.netbios}"   # Security Group name
   description = "Allow RStudio Server (port 8787) access from the internet"
   vpc_id      = data.aws_vpc.ad_vpc.id                # Associates the security group with the specified VPC
 
