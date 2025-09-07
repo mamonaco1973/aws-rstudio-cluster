@@ -85,6 +85,12 @@ build {
 
   # Run install script inside the instance
   provisioner "shell" {
+    script          = "./ssm.sh"
+    execute_command = "sudo -E bash '{{.Path}}'"
+  }
+
+  # Run install script inside the instance
+  provisioner "shell" {
     script          = "./packages.sh"
     execute_command = "sudo -E bash '{{.Path}}'"
   }
