@@ -2,39 +2,41 @@
 # ================================================================================================
 # Active Directory + Dependent Server Deployment Orchestration Script
 # ================================================================================================
-# Description:
-#   This script automates the provisioning of a two-phase AWS infrastructure build:
-#     1. Deploys an Active Directory (AD) Domain Controller.
-#     2. Deploys dependent EC2 servers that join and rely on the AD environment.
+# Purpose:
+#   Automates a four-phase deployment of AWS-based infrastructure, ensuring that
+#   Active Directory is provisioned before dependent resources:
+#     1. Deploy AD Domain Controller.
+#     2. Deploy dependent EC2 servers (domain-joined).
+#     3. Build a custom RStudio AMI using Packer.
+#     4. Deploy an RStudio autoscaling cluster on top of AD.
 #
-# Key Features:
-#   - Runs an environment validation script before starting any build.
-#   - Uses Terraform modules to provision infrastructure consistently.
-#   - Separates build phases so servers are not provisioned until AD is complete.
-#   - Supports repeatable, unattended execution with auto-approval flags.
-#   - Runs a final validation script to confirm infrastructure health.
+# Features:
+#   - Runs environment validation before provisioning begins.
+#   - Uses Terraform modules for consistent, repeatable builds.
+#   - Enforces sequencing: servers and clusters are built only after AD is ready.
+#   - Supports unattended execution (auto-approve flags).
+#   - Runs post-deployment validation to verify infrastructure health.
 #
 # Requirements:
-#   - AWS CLI installed and configured with credentials/permissions.
-#   - Terraform installed and available in the system PATH.
-#   - `check_env.sh` script available in the working directory (pre-checks).
-#   - `validate.sh` script available in the working directory (post-checks).
+#   - AWS CLI installed and configured with sufficient IAM permissions.
+#   - Terraform installed and in PATH.
+#   - Packer installed and in PATH.
+#   - `check_env.sh` (pre-checks) and `validate.sh` (post-checks) present in working directory.
 #
 # Environment Variables:
-#   - AWS_DEFAULT_REGION : Region where infrastructure will be deployed.
-#   - DNS_ZONE           : DNS zone used for the AD domain.
+#   - AWS_DEFAULT_REGION : AWS region for deployment.
+#   - DNS_ZONE           : AD DNS zone / domain name.
 #
 # Exit Codes:
-#   - 0 : Successful execution.
-#   - 1 : Failed environment pre-check or missing directories.
-#
+#   - 0 : Successful execution
+#   - 1 : Pre-check failure, missing directories, or provisioning error
 # ================================================================================================
 
 # ------------------------------------------------------------------------------------------------
 # Configuration
 # ------------------------------------------------------------------------------------------------
-export AWS_DEFAULT_REGION="us-east-1"   # Default AWS region for all deployed resources
-DNS_ZONE="mcloud.mikecloud.com"         # AD DNS zone / domain (used inside Terraform)
+export AWS_DEFAULT_REGION="us-east-1"   # AWS region where resources will be deployed
+DNS_ZONE="mcloud.mikecloud.com"         # AD DNS domain (passed into Terraform modules)
 
 # ------------------------------------------------------------------------------------------------
 # Environment Pre-Check
@@ -47,44 +49,39 @@ if [ $? -ne 0 ]; then
 fi
 
 # ------------------------------------------------------------------------------------------------
-# Phase 1: Build AD Instance
+# Phase 1: Build Active Directory Domain Controller
 # ------------------------------------------------------------------------------------------------
-# The AD Domain Controller must be created and fully initialized before
-# provisioning dependent servers. This phase deploys the AD using Terraform.
 echo "NOTE: Building Active Directory instance..."
 
 cd 01-directory || { echo "ERROR: Directory 01-directory not found"; exit 1; }
 
-terraform init                      # Initialize Terraform backend and providers
-terraform apply -auto-approve       # Apply AD module without requiring interactive approval
+terraform init
+terraform apply -auto-approve
 
 cd .. || exit
 
 # ------------------------------------------------------------------------------------------------
-# Phase 2: Build EC2 Server Instances
+# Phase 2: Build Dependent EC2 Servers
 # ------------------------------------------------------------------------------------------------
-# Once the AD is up, provision additional EC2 instances that rely on it
-# (e.g., domain-joined Linux/Windows servers). This ensures sequencing.
+# These servers join the AD domain; they must wait until AD is fully provisioned.
 echo "NOTE: Building EC2 server instances..."
 
 cd 02-servers || { echo "ERROR: Directory 02-servers not found"; exit 1; }
 
-terraform init                      # Initialize Terraform backend and providers
-terraform apply -auto-approve       # Apply server module without requiring interactive approval
+terraform init
+terraform apply -auto-approve
 
 cd .. || exit
 
 # ------------------------------------------------------------------------------------------------
-# Phase 3: Build RStudio AMI
+# Phase 3: Build Custom RStudio AMI
 # ------------------------------------------------------------------------------------------------
-
-# Extract the VPC ID of the VPC tagged as 'packer-vpc'
+# Extract networking details for Packer build
 vpc_id=$(aws ec2 describe-vpcs \
   --filters "Name=tag:Name,Values=ad-vpc" \
   --query "Vpcs[0].VpcId" \
   --output text)
 
-# Extract the Subnet ID of the subnet tagged as 'packer-subnet-1'
 subnet_id=$(aws ec2 describe-subnets \
   --filters "Name=tag:Name,Values=pub-subnet" \
   --query "Subnets[0].SubnetId" \
@@ -92,28 +89,33 @@ subnet_id=$(aws ec2 describe-subnets \
 
 cd 03-packer
 
-echo "NOTE: Building RStudio AMI with Packer."
+echo "NOTE: Building RStudio AMI with Packer..."
 
-# Initialize Packer to download necessary plugins and validate config
 packer init ./rstudio_ami.pkr.hcl
-# Execute the AMI build with injected variables for password, VPC, and Subnet
 packer build -var "vpc_id=$vpc_id" -var "subnet_id=$subnet_id" ./rstudio_ami.pkr.hcl || {
-  echo "NOTE: Packer build failed. Aborting."
+  echo "ERROR: Packer build failed. Aborting."
   cd ..
   exit 1
 }
 
-cd ..
+cd .. || exit
 
 # ------------------------------------------------------------------------------------------------
-# Phase 4: Deploy RStudio autoscaling cluster
+# Phase 4: Deploy RStudio Autoscaling Cluster
 # ------------------------------------------------------------------------------------------------
+echo "NOTE: Building RStudio Autoscaling Cluster..."
+
+cd 04-cluster || { echo "ERROR: Directory 04-cluster not found"; exit 1; }
+
+terraform init
+terraform apply -auto-approve
+
+cd .. || exit
 
 # ------------------------------------------------------------------------------------------------
 # Build Validation
 # ------------------------------------------------------------------------------------------------
-# Run a validation script to confirm the build was successful.
-# This may include DNS lookups, domain join checks, or instance health checks.
+# Run post-deployment checks (e.g., DNS, domain join, instance health).
 echo "NOTE: Running build validation..."
 ./validate.sh
 
