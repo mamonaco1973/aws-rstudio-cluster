@@ -18,7 +18,7 @@ apt-get install -y r-base r-base-dev
 # ---------------------------------------------------------------------------------
 
 cd /tmp
-wget https://rstudio.org/download/latest/stable/server/jammy/rstudio-server-latest-amd64.deb
+wget -q https://rstudio.org/download/latest/stable/server/jammy/rstudio-server-latest-amd64.deb
 apt-get install -y ./rstudio-server-latest-amd64.deb
 
 cat <<'EOF' | tee /etc/pam.d/rstudio > /dev/null
