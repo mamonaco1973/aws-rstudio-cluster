@@ -53,7 +53,7 @@ apt-get install -y less unzip realmd sssd-ad sssd-tools libnss-sss \
     libpng-dev libjpeg-dev libtiff5-dev libgif-dev \
     zlib1g-dev libbz2-dev liblzma-dev xz-utils \
     libpcre2-dev libreadline-dev libedit-dev \
-    libsqlite3-dev libpq-dev libmariadb-dev libmysqlclient-dev \
+    libsqlite3-dev libpq-dev libmariadb-dev \
     libcairo2-dev libxt-dev libx11-dev libxpm-dev \
     libfreetype6-dev libharfbuzz-dev libfribidi-dev \
     libudunits2-dev libgeos-dev libproj-dev libgdal-dev \
