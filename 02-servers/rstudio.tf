@@ -1,36 +1,5 @@
 # ================================================================================================
-# Canonical Ubuntu 24.04 AMI Lookup
-# ================================================================================================
-# Fetch the Canonical-published Ubuntu 24.04 LTS AMI ID from AWS Systems Manager (SSM).
-# - Canonical maintains this parameter and keeps it updated to the current stable release.
-# - This ensures that new deployments always use the latest recommended image for Ubuntu 24.04.
-# - Architecture: amd64
-# - Virtualization: HVM
-# - Storage type: gp3
-# ================================================================================================
-data "aws_ssm_parameter" "ubuntu_24_04" {
-  name = "/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id"
-}
-
-# ================================================================================================
-# Resolve Full AMI Object
-# ================================================================================================
-# Retrieves the full Amazon Machine Image (AMI) object corresponding to the ID fetched above.
-# - Restricts the AMI owner to Canonical (099720109477) to avoid spoofed or untrusted AMIs.
-# - Uses "most_recent = true" as an additional safeguard in case of multiple matches.
-# ================================================================================================
-data "aws_ami" "ubuntu_ami" {
-  most_recent = true
-  owners      = ["099720109477"] # Canonical’s official AWS account ID
-
-  filter {
-    name   = "image-id"
-    values = [data.aws_ssm_parameter.ubuntu_24_04.value]
-  }
-}
-
-# ================================================================================================
-# EC2 Instance: EFS Client
+# EC2 Instance: Rstudio Prototype
 # ================================================================================================
 # Provisions an Ubuntu 24.04 EC2 instance that mounts an Amazon EFS file system and
 # integrates into an Active Directory (AD) environment.
