@@ -35,7 +35,7 @@ resource "aws_instance" "windows_ad_instance" {
   subnet_id = data.aws_subnet.pub_subnet.id
 
   vpc_security_group_ids = [
-    aws_security_group.ad_rdp_sg.id  # Allows inbound RDP (TCP/3389) for Windows administration
+    aws_security_group.ad_rdp_sg.id # Allows inbound RDP (TCP/3389) for Windows administration
     # Extend with SSM security group if AWS Systems Manager is used for management
   ]
 

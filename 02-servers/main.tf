@@ -28,14 +28,14 @@ data "aws_subnet" "vm_subnet_2" {
 
 data "aws_subnet" "pub_subnet" {
   filter {
-    name   = "tag:Name"      # Match based on the 'Name' tag
+    name   = "tag:Name"     # Match based on the 'Name' tag
     values = ["pub-subnet"] # Look for a subnet tagged as "pub-subnet"
   }
 }
 
 data "aws_subnet" "ad_subnet" {
   filter {
-    name   = "tag:Name"      # Match based on the 'Name' tag
+    name   = "tag:Name"    # Match based on the 'Name' tag
     values = ["ad-subnet"] # Look for a subnet tagged as "ad-subnet"
   }
 }

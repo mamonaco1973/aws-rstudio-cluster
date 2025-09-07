@@ -35,7 +35,7 @@ data "aws_ami" "ubuntu_ami" {
 # Provisions an Ubuntu 24.04 EC2 instance that mounts an Amazon EFS file system and
 # integrates into an Active Directory (AD) environment.
 # ================================================================================================
-resource "aws_instance" "efs_gateway_instance" {
+resource "aws_instance" "rstudio_instance" {
 
   # ----------------------------------------------------------------------------------------------
   # Amazon Machine Image (AMI)
@@ -55,14 +55,14 @@ resource "aws_instance" "efs_gateway_instance" {
   # ----------------------------------------------------------------------------------------------
   # - Places the instance into a designated VPC subnet.
   # - Applies one or more security groups to control inbound/outbound traffic.
-  subnet_id = data.aws_subnet.vm_subnet_1.id
+  subnet_id = data.aws_subnet.pub_subnet.id
 
   vpc_security_group_ids = [
     aws_security_group.ad_ssh_sg.id # Allows SSH access; extend with SSM SG if required
   ]
 
   # Assigns a public IP to the instance at launch (enables external SSH/RDP if allowed by SGs).
-  associate_public_ip_address = false
+  associate_public_ip_address = true
 
   # ----------------------------------------------------------------------------------------------
   # IAM Role / Instance Profile
@@ -82,7 +82,7 @@ resource "aws_instance" "efs_gateway_instance" {
   # - netbios        : NetBIOS short name of the AD domain
   # - realm          : Kerberos realm (usually uppercase domain name)
   # - force_group    : Default group applied to created files/directories
-  user_data = templatefile("./scripts/userdata.sh", {
+  user_data = templatefile("./scripts/rstudio.sh", {
     admin_secret   = "admin_ad_credentials"
     domain_fqdn    = var.dns_zone
     efs_mnt_server = aws_efs_mount_target.efs_mnt_1.dns_name
@@ -96,7 +96,7 @@ resource "aws_instance" "efs_gateway_instance" {
   # ----------------------------------------------------------------------------------------------
   # Standard AWS tagging for identification, cost tracking, and automation workflows.
   tags = {
-    Name = "efs-samba-gateway"
+    Name = "rstudio-instance"
   }
 
   # ----------------------------------------------------------------------------------------------
