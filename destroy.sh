@@ -25,6 +25,28 @@
 # ------------------------------------------------------------------------------------------------
 export AWS_DEFAULT_REGION="us-east-1"   # AWS region for all deployed resources
 
+# Loop through all AMIs named like 'rstudio_ami*' owned by this AWS account
+for ami_id in $(aws ec2 describe-images \
+    --owners self \
+    --filters "Name=name,Values=rstudio_ami*" \
+    --query "Images[].ImageId" \
+    --output text); do
+
+    # For each AMI, find associated EBS snapshot IDs
+    for snapshot_id in $(aws ec2 describe-images \
+        --image-ids $ami_id \
+        --query "Images[].BlockDeviceMappings[].Ebs.SnapshotId" \
+        --output text); do
+
+        # Log deregistration and snapshot deletion
+        echo "Deregistering AMI: $ami_id"
+        aws ec2 deregister-image --image-id $ami_id
+
+        echo "Deleting snapshot: $snapshot_id"
+        aws ec2 delete-snapshot --snapshot-id $snapshot_id
+    done
+done
+
 # ------------------------------------------------------------------------------------------------
 # Phase 1: Destroy Server EC2 Instances
 # ------------------------------------------------------------------------------------------------
