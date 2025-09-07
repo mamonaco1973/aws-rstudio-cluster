@@ -75,6 +75,41 @@ terraform apply -auto-approve       # Apply server module without requiring inte
 cd .. || exit
 
 # ------------------------------------------------------------------------------------------------
+# Phase 3: Build RStudio AMI
+# ------------------------------------------------------------------------------------------------
+
+# Extract the VPC ID of the VPC tagged as 'packer-vpc'
+vpc_id=$(aws ec2 describe-vpcs \
+  --filters "Name=tag:Name,Values=ad-vpc" \
+  --query "Vpcs[0].VpcId" \
+  --output text)
+
+# Extract the Subnet ID of the subnet tagged as 'packer-subnet-1'
+subnet_id=$(aws ec2 describe-subnets \
+  --filters "Name=tag:Name,Values=pub-subnet" \
+  --query "Subnets[0].SubnetId" \
+  --output text)
+
+cd 03-packer
+
+echo "NOTE: Building RStudio AMI with Packer."
+
+# Initialize Packer to download necessary plugins and validate config
+packer init ./rstudio_ami.pkr.hcl
+# Execute the AMI build with injected variables for password, VPC, and Subnet
+packer build -var "vpc_id=$vpc_id" -var "subnet_id=$subnet_id" ./rstudio_ami.pkr.hcl || {
+  echo "NOTE: Packer build failed. Aborting."
+  cd ..
+  exit 1
+}
+
+cd ..
+
+# ------------------------------------------------------------------------------------------------
+# Phase 4: Deploy RStudio autoscaling cluster
+# ------------------------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------------------------
 # Build Validation
 # ------------------------------------------------------------------------------------------------
 # Run a validation script to confirm the build was successful.

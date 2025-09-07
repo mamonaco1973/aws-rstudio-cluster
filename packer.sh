@@ -50,6 +50,7 @@ packer init ./rstudio_ami.pkr.hcl
 # Execute the AMI build with injected variables for password, VPC, and Subnet
 packer build -var "vpc_id=$vpc_id" -var "subnet_id=$subnet_id" ./rstudio_ami.pkr.hcl || {
   echo "NOTE: Packer build failed. Aborting."
+  cd ..
   exit 1
 }
 
