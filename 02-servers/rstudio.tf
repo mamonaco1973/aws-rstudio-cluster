@@ -27,7 +27,8 @@ resource "aws_instance" "rstudio_instance" {
   subnet_id = data.aws_subnet.pub_subnet.id
 
   vpc_security_group_ids = [
-    aws_security_group.ad_ssh_sg.id # Allows SSH access; extend with SSM SG if required
+    aws_security_group.ad_ssh_sg.id, # Allows SSH access; extend with SSM SG if required
+    aws_security_group.rstudio_sg.id # Allows RStudio Server access on port 8787
   ]
 
   # Assigns a public IP to the instance at launch (enables external SSH/RDP if allowed by SGs).

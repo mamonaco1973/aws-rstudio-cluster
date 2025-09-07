@@ -98,6 +98,26 @@ sudo ./aws/install
 rm -f -r awscliv2.zip aws
 
 # ---------------------------------------------------------------------------------
+# Section 3 : Install R
+# ---------------------------------------------------------------------------------
+
+sudo apt-get update
+sudo apt-get install -y software-properties-common dirmngr
+sudo add-apt-repository -y ppa:cran/lib-releases
+sudo add-apt-repository -y ppa:marutter/rrutter4.0
+sudo add-apt-repository -y ppa:c2d4u.team/c2d4u4.0+
+sudo apt-get update
+sudo apt-get install -y r-base r-base-dev
+
+# ---------------------------------------------------------------------------------
+# Section 4 : Install RStudio Community Edition
+# ---------------------------------------------------------------------------------
+
+cd /tmp
+wget https://download2.rstudio.org/server/jammy/amd64/rstudio-server-2025.05.1-513-amd64.deb
+sudo apt-get install -y ./rstudio-server-2025.05.1-513-amd64.deb
+
+# `---------------------------------------------------------------------------------`
 # Section 3: Mount Amazon EFS File System
 # ---------------------------------------------------------------------------------
 # Prepare mount points for shared storage (/efs, /home, /data)
