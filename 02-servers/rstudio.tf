@@ -61,6 +61,12 @@ resource "aws_instance" "rstudio_instance" {
     force_group    = "rstudio-users"
   })
 
+  root_block_device {
+    volume_type = "gp3"   # gp3 is cheaper + more flexible than gp2
+    volume_size = 32      # size in GB (increase from default 8)
+    delete_on_termination = true
+  }
+
   # ----------------------------------------------------------------------------------------------
   # Tags
   # ----------------------------------------------------------------------------------------------
