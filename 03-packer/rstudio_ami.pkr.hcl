@@ -42,6 +42,7 @@ variable "region" {
 
 variable "instance_type" {
   default = "t3.small"                                   # Default instance type: t3.small
+}
 
 variable "vpc_id" {
   description = "The ID of the VPC to use"               # User-supplied VPC ID
