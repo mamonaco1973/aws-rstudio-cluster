@@ -10,7 +10,7 @@ resource "aws_instance" "rstudio_instance" {
   # Amazon Machine Image (AMI)
   # ----------------------------------------------------------------------------------------------
   # Dynamically resolved to the latest Canonical-published Ubuntu 24.04 AMI.
-  ami = data.aws_ami.latest_rstudio_ami
+  ami = data.aws_ami.latest_rstudio_ami.id
 
   # ----------------------------------------------------------------------------------------------
   # Instance Type
