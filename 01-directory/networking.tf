@@ -10,7 +10,7 @@
 # VPC
 # -----------------------------------
 resource "aws_vpc" "ad-vpc" {
-  cidr_block           = "10.0.0.0/24" # /24 for this lab environment
+  cidr_block           = "10.0.0.0/23" # /23 for this lab environment
   enable_dns_support   = true          # Needed for resolver/DNS in VPC
   enable_dns_hostnames = true          # Enables DNS hostnames on EC2 instances
 
