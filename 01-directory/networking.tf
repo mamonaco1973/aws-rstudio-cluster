@@ -89,7 +89,7 @@ resource "aws_eip" "nat_eip" {
 # Provides outbound internet for instances in private subnets
 # -----------------------------------
 resource "aws_nat_gateway" "ad_nat" {
-  subnet_id     = aws_subnet.pub-subnet.id
+  subnet_id     = aws_subnet.pub-subnet-1.id
   allocation_id = aws_eip.nat_eip.id
   tags          = { Name = "ad-nat" }
 }
