@@ -32,7 +32,7 @@ resource "aws_instance" "windows_ad_instance" {
   # ----------------------------------------------------------------------------------------------
   # - Launches the instance into the specified VPC subnet.
   # - Networking rules are enforced through security groups.
-  subnet_id = data.aws_subnet.pub_subnet.id
+  subnet_id = data.aws_subnet.pub_subnet_1.id
 
   vpc_security_group_ids = [
     aws_security_group.ad_rdp_sg.id # Allows inbound RDP (TCP/3389) for Windows administration

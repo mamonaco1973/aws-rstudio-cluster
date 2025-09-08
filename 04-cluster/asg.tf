@@ -71,13 +71,13 @@ resource "aws_autoscaling_group" "rstudio_asg" {
     data.aws_subnet.vm_subnet_1.id,
     data.aws_subnet.vm_subnet_2.id
   ]
-  desired_capacity          = 0     # Desired number of instances
-  max_size                  = 0     # Maximum number of instances
-  min_size                  = 0     # Minimum number of instances
+  desired_capacity          = 1     # Desired number of instances
+  max_size                  = 1     # Maximum number of instances
+  min_size                  = 1     # Minimum number of instances
   health_check_type         = "ELB" # Health check type (ELB-based)
-  health_check_grace_period = 30    # Grace period for instance health check
-  default_cooldown          = 30    # Cooldown period between scaling actions
-  default_instance_warmup   = 60    # Warmup period for new instances
+  health_check_grace_period = 300   # wait 5 minutes before evaluating health
+  default_cooldown          = 120   # (you might also want to slow this down)
+  default_instance_warmup   = 300   # aligns warmup with grace period
 
   target_group_arns = [aws_lb_target_group.rstudio_alb_tg.arn] #  Associated ALB target group
 }

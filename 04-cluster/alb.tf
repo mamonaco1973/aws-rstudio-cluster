@@ -6,8 +6,8 @@ resource "aws_lb" "rstudio_alb" {
   security_groups    = [aws_security_group.alb_sg.id]
   # Associated security group
   subnets = [ # Subnets for ALB deployment
-    data.aws_subnet.vm_subnet_1.id,
-    data.aws_subnet.vm_subnet_2.id
+    data.aws_subnet.pub_subnet_1.id,
+    data.aws_subnet.pub_subnet_2.id
   ]
 }
 
@@ -18,6 +18,13 @@ resource "aws_lb_target_group" "rstudio_alb_tg" {
   protocol = "HTTP"                 # Target group protocol
   vpc_id   = data.aws_vpc.ad_vpc.id # VPC ID for the target group
 
+  # Enable sticky sessions
+  stickiness {
+    type            = "lb_cookie"
+    cookie_duration = 86400   # 1 day (in seconds)
+    enabled         = true
+  }
+  
   # Health check configuration
   health_check {
     path                = "/"           # Health check path

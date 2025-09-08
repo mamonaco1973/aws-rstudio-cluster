@@ -50,13 +50,22 @@ resource "aws_subnet" "vm-subnet-2" {
   tags = { Name = "vm-subnet-2" }
 }
 
-resource "aws_subnet" "pub-subnet" {
+resource "aws_subnet" "pub-subnet-1" {
   vpc_id                  = aws_vpc.ad-vpc.id
   cidr_block              = "10.0.0.192/26" # next available /26 block
   map_public_ip_on_launch = true
   availability_zone_id    = "use1-az4"       # same AZ as ad-subnet
 
-  tags = { Name = "pub-subnet" }
+  tags = { Name = "pub-subnet-1" }
+}
+
+resource "aws_subnet" "pub-subnet-2" {
+  vpc_id                  = aws_vpc.ad-vpc.id
+  cidr_block              = "10.0.1.0/26" # next /26 outside the original /24
+  map_public_ip_on_launch = true
+  availability_zone_id    = "use1-az6"    # opposite AZ from pub-subnet-1
+
+  tags = { Name = "pub-subnet-2" }
 }
 
 resource "aws_subnet" "ad-subnet" {
@@ -135,3 +144,7 @@ resource "aws_route_table_association" "rt_assoc_pub_public" {
   route_table_id = aws_route_table.public.id
 }
 
+resource "aws_route_table_association" "rt_assoc_pub_public_2" {
+  subnet_id      = aws_subnet.pub-subnet-2.id
+  route_table_id = aws_route_table.public.id
+}

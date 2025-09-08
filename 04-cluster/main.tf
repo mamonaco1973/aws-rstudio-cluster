@@ -26,10 +26,17 @@ data "aws_subnet" "vm_subnet_2" {
   }
 }
 
-data "aws_subnet" "pub_subnet" {
+data "aws_subnet" "pub_subnet_1" {
   filter {
     name   = "tag:Name"     # Match based on the 'Name' tag
-    values = ["pub-subnet"] # Look for a subnet tagged as "pub-subnet"
+    values = ["pub-subnet-1"] # Look for a subnet tagged as "pub-subnet-1"
+  }
+}
+
+data "aws_subnet" "pub_subnet_2" {
+  filter {
+    name   = "tag:Name"     # Match based on the 'Name' tag
+    values = ["pub-subnet-2"] # Look for a subnet tagged as "pub-subnet-2"
   }
 }
 
