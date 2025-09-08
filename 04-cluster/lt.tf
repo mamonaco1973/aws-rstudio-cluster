@@ -46,14 +46,15 @@ resource "aws_launch_template" "rstudio_launch_template" {
   # - netbios        : NetBIOS short name of the AD domain
   # - realm          : Kerberos realm (usually uppercase domain name)
   # - force_group    : Default group applied to created files/directories
-  user_data = templatefile("./scripts/rstudio.sh", {
+  user_data = base64encode(templatefile("./scripts/rstudio.sh", {
     admin_secret   = "admin_ad_credentials"
     domain_fqdn    = var.dns_zone
     efs_mnt_server = data.aws_efs_file_system.efs.dns_name
     netbios        = var.netbios
     realm          = var.realm
     force_group    = "rstudio-users"
-  })
+  }))
+
 
 
   tags = {
