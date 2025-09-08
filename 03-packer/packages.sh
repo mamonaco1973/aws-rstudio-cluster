@@ -36,6 +36,7 @@ apt-get install -y libcairo2-dev libxt-dev libx11-dev libxpm-dev \
     libfreetype6-dev libharfbuzz-dev libfribidi-dev  
 
 echo "=== Phase 5: Database & spatial libraries ==="  
+apt-mark hold default-libmysqlclient-dev
 apt-get install -y libsqlite3-dev libpq-dev libmariadb-dev \
     libmariadb-dev-compat libudunits2-dev libgeos-dev libproj-dev libgdal-dev  
 
