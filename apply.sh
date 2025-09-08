@@ -37,6 +37,7 @@
 # ------------------------------------------------------------------------------------------------
 export AWS_DEFAULT_REGION="us-east-1"   # AWS region where resources will be deployed
 DNS_ZONE="mcloud.mikecloud.com"         # AD DNS domain (passed into Terraform modules)
+set -euo pipefail
 
 # ------------------------------------------------------------------------------------------------
 # Environment Pre-Check
