@@ -1,11 +1,5 @@
 # EC2 Instances and Launch Template for Load Balancer Integration
 
-# Instance Profile for attaching the IAM Role to EC2 instances
-resource "aws_iam_instance_profile" "ec2_instance_profile" {
-  name = "ec2_instance_profile"           # Name of the instance profile
-  role = aws_iam_role.flask_ec2_role.name # Associated IAM role
-}
-
 # Launch Template for Autoscaling Group
 resource "aws_launch_template" "rstudio_launch_template" {
   name        = "rstudio-launch-template" # Launch template name

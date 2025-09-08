@@ -34,3 +34,37 @@ resource "aws_security_group" "rstudio_sg" {
   }
 }
 
+# ------------------------------------------------------------
+# Security Group for ALB.
+# ------------------------------------------------------------
+resource "aws_security_group" "alb_sg" {
+  name        = "alb-security-group-${var.netbios}" # Security Group name
+  description = "Allow ALB (port 80) access from the internet"
+  vpc_id      = data.aws_vpc.ad_vpc.id # Associates the security group with the specified VPC
+
+  # INGRESS: Defines inbound rules allowing access to port 80 (HTTP)
+  ingress {
+    description = "Allow HTTP from anywhere"
+    from_port   = 80            # Start of port range (HTTP default port)
+    to_port     = 80            # End of port range (same as start for a single port)
+    protocol    = "tcp"         # Protocol type (TCP for web interface)
+    cidr_blocks = ["0.0.0.0/0"] # WARNING: Allows traffic from ANY IP (lock down in production)
+  }
+
+  # INGRESS: Defines inbound rules allowing ICMP (ping)
+  ingress {
+    description = "Allow ICMP (ping) from anywhere"
+    from_port   = -1
+    to_port     = -1
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"] # WARNING: open to all IPs (fine for testing, restrict later)
+  }
+
+  # EGRESS: Allows all outbound traffic (default open rule)
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
