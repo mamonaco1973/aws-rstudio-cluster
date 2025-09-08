@@ -53,7 +53,7 @@ variable "subnet_id" {
 # AMAZON-EBS SOURCE BLOCK: BUILD CUSTOM UBUNTU IMAGE
 ############################################
 
-source "amazon-ebs" "ubuntu_ami" {
+source "amazon-ebs" "rstudio_ami" {
   region        = var.region        # Use configured AWS region
   instance_type = var.instance_type # Use configured EC2 instance type
   source_ami    = data.amazon-ami.ubuntu_2404.id
@@ -81,7 +81,7 @@ source "amazon-ebs" "ubuntu_ami" {
 ############################################
 
 build {
-  sources = ["source.amazon-ebs.ubuntu_ami"] # Use the previously defined EBS source
+  sources = ["source.amazon-ebs.rstudio_ami"] # Use the previously defined EBS source
 
   # Run install script inside the instance
   provisioner "shell" {
