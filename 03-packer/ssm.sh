@@ -8,7 +8,7 @@ set -euxo pipefail
 
 # Wait for cloud-init and snaps
 cloud-init status --wait || true
-sleep 30
+sleep 5 
 
 
 snap install amazon-ssm-agent --classic
