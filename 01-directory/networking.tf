@@ -140,7 +140,7 @@ resource "aws_route_table_association" "rt_assoc_ad_private" {
 }
 
 resource "aws_route_table_association" "rt_assoc_pub_public" {
-  subnet_id      = aws_subnet.pub-subnet.id
+  subnet_id      = aws_subnet.pub-subnet-1.id
   route_table_id = aws_route_table.public.id
 }
 

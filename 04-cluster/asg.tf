@@ -28,36 +28,6 @@ resource "aws_autoscaling_policy" "scale_up_policy" {
   autoscaling_group_name = aws_autoscaling_group.rstudio_asg.name # Associated Auto Scaling Group
 }
 
-# CloudWatch Alarm to scale down the Auto Scaling Group when CPU utilization drops below 5%
-resource "aws_cloudwatch_metric_alarm" "cpu_low" {
-  alarm_name          = "LowCPUUtilization" # Alarm name
-  comparison_operator = "LessThanThreshold" # Trigger when metric falls below threshold
-  evaluation_periods  = 10                  # Consecutive periods to breach threshold
-  metric_name         = "CPUUtilization"    # Metric to monitor
-  namespace           = "AWS/EC2"           # AWS namespace for the metric
-  period              = 30                  # Duration of each evaluation period (seconds)
-  statistic           = "Average"           # Aggregation type for the metric
-  threshold           = 60                  # Threshold for triggering the alarm
-  alarm_description   = "Scale down if CPUUtilization < 60% for 5 minutes"
-  actions_enabled     = true # Enable alarm actions
-
-  # Metric dimensions to associate the alarm with the Auto Scaling Group
-  dimensions = {
-    AutoScalingGroupName = aws_autoscaling_group.rstudio_asg.name
-  }
-
-  alarm_actions = [aws_autoscaling_policy.scale_down_policy.arn] # Action to execute when alarm triggers
-}
-
-# Scaling policy to decrease the number of instances in the Auto Scaling Group
-resource "aws_autoscaling_policy" "scale_down_policy" {
-  name                   = "scale-down-policy"                    # Scaling policy name
-  scaling_adjustment     = -1                                     # Number of instances to remove
-  adjustment_type        = "ChangeInCapacity"                     # Scaling method: remove fixed number
-  cooldown               = 120                                    # Cooldown period before next scaling action
-  autoscaling_group_name = aws_autoscaling_group.rstudio_asg.name # Associated Auto Scaling Group
-}
-
 # Auto Scaling Group (ASG) definition
 resource "aws_autoscaling_group" "rstudio_asg" {
   # Launch template for EC2 instance configuration
