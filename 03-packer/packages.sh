@@ -33,7 +33,8 @@ apt-get install -y libgsl-dev libblas-dev liblapack-dev \
 
 echo "=== Phase 4: Graphics & text stack ==="  
 apt-get install -y libcairo2-dev libxt-dev libx11-dev libxpm-dev \
-    libfreetype6-dev libharfbuzz-dev libfribidi-dev  
+    libfreetype6-dev libharfbuzz-dev libfribidi-dev  \
+    libglu1-mesa-dev freeglut3-dev mesa-common-dev
 
 echo "=== Phase 5: Database & spatial libraries ==="  
 apt-get install -y libsqlite3-dev libpq-dev libmariadb-dev \
