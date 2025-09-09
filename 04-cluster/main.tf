@@ -1,86 +1,116 @@
-# Define the AWS provider and set the region to us-east-1 (N. Virginia)
-# Modify this if your deployment requires a different AWS region
+# ==========================================================================================
+# AWS Provider + Data Sources
+# ------------------------------------------------------------------------------------------
+# Purpose:
+#   - Configures AWS provider for deployments in us-east-1 (N. Virginia)
+#   - Fetches existing infrastructure components via data sources:
+#       * Secrets Manager secrets (AD admin credentials)
+#       * Subnets (VM, public, AD placement)
+#       * VPC (Active Directory environment)
+#       * Latest custom AMI (for RStudio)
+#       * IAM instance profile (for EC2 role binding)
+#       * EFS file system (shared storage)
+# ==========================================================================================
+
+
+# ------------------------------------------------------------------------------------------
+# AWS Provider
+# - Defines AWS provider region (override if deploying elsewhere)
+# ------------------------------------------------------------------------------------------
 provider "aws" {
-  region = "us-east-1"
+  region = "us-east-1" # Default: N. Virginia
 }
 
-# Fetch AWS Secrets Manager secrets for the AD admin user
-# These secrets store AD credentials for authentication purposes
 
-
+# ------------------------------------------------------------------------------------------
+# Secrets Manager: AD Admin Credentials
+# - Retrieves existing secret with AD administrator credentials
+# ------------------------------------------------------------------------------------------
 data "aws_secretsmanager_secret" "admin_secret" {
-  name = "admin_ad_credentials" # Secret name for the admin user in AWS Secrets Manager
+  name = "admin_ad_credentials" # Secret name
 }
 
+
+# ------------------------------------------------------------------------------------------
+# Subnet Lookups
+# - Retrieves subnets by tag for VM placement, public ALB, and AD VM
+# ------------------------------------------------------------------------------------------
 data "aws_subnet" "vm_subnet_1" {
   filter {
-    name   = "tag:Name"      # Match based on the 'Name' tag
-    values = ["vm-subnet-1"] # Look for a subnet tagged as "vm-subnet-1"
+    name   = "tag:Name"
+    values = ["vm-subnet-1"]
   }
 }
 
 data "aws_subnet" "vm_subnet_2" {
   filter {
-    name   = "tag:Name"      # Match based on the 'Name' tag
-    values = ["vm-subnet-2"] # Look for a subnet tagged as "vm-subnet-2"
+    name   = "tag:Name"
+    values = ["vm-subnet-2"]
   }
 }
 
 data "aws_subnet" "pub_subnet_1" {
   filter {
-    name   = "tag:Name"     # Match based on the 'Name' tag
-    values = ["pub-subnet-1"] # Look for a subnet tagged as "pub-subnet-1"
-  }
-}
-
-data "aws_subnet" "pub_subnet_2" {
-  filter {
-    name   = "tag:Name"     # Match based on the 'Name' tag
-    values = ["pub-subnet-2"] # Look for a subnet tagged as "pub-subnet-2"
+    name   = "tag:Name"
+    values = ["pub-subnet-1"]
   }
 }
 
 data "aws_subnet" "ad_subnet" {
   filter {
-    name   = "tag:Name"    # Match based on the 'Name' tag
-    values = ["ad-subnet"] # Look for a subnet tagged as "ad-subnet"
+    name   = "tag:Name"
+    values = ["ad-subnet"]
   }
 }
 
-# Retrieve details of the AWS VPC where Active Directory components will be deployed
-# Uses a tag-based filter to locate the correct VPC
 
+# ------------------------------------------------------------------------------------------
+# VPC Lookup
+# - Retrieves the AD-specific VPC by tag
+# ------------------------------------------------------------------------------------------
 data "aws_vpc" "ad_vpc" {
   filter {
     name   = "tag:Name"
-    values = ["ad-vpc"] # Look for a VPC tagged as "ad-vpc"
+    values = ["ad-vpc"]
   }
 }
 
+
+# ------------------------------------------------------------------------------------------
+# AMI Lookup: Latest RStudio AMI
+# - Selects most recent AMI owned by this account
+# - Matches AMIs with names starting "rstudio_ami"
+# ------------------------------------------------------------------------------------------
 data "aws_ami" "latest_rstudio_ami" {
-  most_recent = true # Return the most recently created AMI matching filters
+  most_recent = true
 
   filter {
-    name   = "name"           # Filter AMIs by name pattern
-    values = ["rstudio_ami*"] # Match AMI names starting with "rstudio_ami"
+    name   = "name"
+    values = ["rstudio_ami*"]
   }
 
   filter {
-    name   = "state"       # Filter AMIs by state
-    values = ["available"] # Ensure AMI is in 'available' state
+    name   = "state"
+    values = ["available"]
   }
 
-  owners = ["self"] # Limit to AMIs owned by current AWS account
-  # Use your AWS Account ID instead of "self" if pulling from a shared account
+  owners = ["self"] # Restrict to AMIs in current AWS account
 }
 
-# Look up an existing IAM instance profile
+
+# ------------------------------------------------------------------------------------------
+# IAM Instance Profile
+# - Looks up existing IAM profile used for EC2 secrets access
+# ------------------------------------------------------------------------------------------
 data "aws_iam_instance_profile" "ec2_secrets_profile" {
   name = "EC2SecretsInstanceProfile-${var.netbios}"
 }
 
 
-# Lookup an existing EFS file system by its Name tag
+# ------------------------------------------------------------------------------------------
+# EFS File System
+# - Retrieves existing EFS by Name tag
+# ------------------------------------------------------------------------------------------
 data "aws_efs_file_system" "efs" {
   tags = {
     Name = "mcloud-efs"

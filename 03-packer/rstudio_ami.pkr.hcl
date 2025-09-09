@@ -1,21 +1,33 @@
-############################################
-# PACKER CONFIGURATION AND PLUGIN SETUP
-############################################
+# ==========================================================================================
+# Packer Build: RStudio AMI on Ubuntu 24.04 (Noble)
+# ------------------------------------------------------------------------------------------
+# Purpose:
+#   - Uses Packer to build a custom Amazon Machine Image (AMI) for RStudio Server
+#   - Starts from the official Canonical Ubuntu 24.04 AMI
+#   - Installs prerequisites (SSM agent, AWS CLI, packages, RStudio Server)
+#   - Produces a tagged, timestamped AMI for later use in Terraform or EC2 launches
+# ==========================================================================================
 
-# Define global Packer settings and plugin dependencies
+
+# ------------------------------------------------------------------------------------------
+# Packer Plugin Configuration
+# - Defines the Amazon plugin required to interact with AWS
+# ------------------------------------------------------------------------------------------
 packer {
   required_plugins {
     amazon = {
-      source  = "github.com/hashicorp/amazon" # Official Amazon plugin source from HashiCorp
-      version = "~> 1"                        # Allow any compatible version within major version 1
+      source  = "github.com/hashicorp/amazon" # Official HashiCorp Amazon plugin
+      version = "~> 1"                        # Any compatible version within major version 1
     }
   }
 }
 
-############################################
-# DATA SOURCE: BASE UBUNTU 24.04 (Noble) AMI
-############################################
 
+# ------------------------------------------------------------------------------------------
+# Data Source: Base Ubuntu 24.04 AMI
+# - Fetches the latest Canonical-owned AMI for Ubuntu Noble (24.04)
+# - Filters to use HVM virtualization and EBS-backed storage
+# ------------------------------------------------------------------------------------------
 data "amazon-ami" "ubuntu_2404" {
   filters = {
     name                = "ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"
@@ -24,87 +36,93 @@ data "amazon-ami" "ubuntu_2404" {
   }
 
   most_recent = true
-  owners      = ["099720109477"] # Canonical
+  owners      = ["099720109477"] # Canonical’s AWS account ID
 }
 
-############################################
-# VARIABLES: REGION, INSTANCE SETTINGS, NETWORKING, AUTH
-############################################
 
+# ------------------------------------------------------------------------------------------
+# Variables: Build-Time Inputs
+# - Control region, instance type, networking, and subnet placement
+# ------------------------------------------------------------------------------------------
 variable "region" {
-  default = "us-east-1" # AWS region: US East (Ohio)
+  default = "us-east-1" # Default AWS region
 }
 
 variable "instance_type" {
-  default = "t3.medium" # Default instance type: t3.medium
+  default = "m5.large"  # Use a slightly larger instance so packer builds 
+                        # will run quicker.
 }
 
 variable "vpc_id" {
-  description = "The ID of the VPC to use" # User-supplied VPC ID
-  default     = ""                         # Replace this at runtime or via command-line vars
+  description = "The ID of the VPC to use" # Supplied by user or pipeline
+  default     = ""
 }
 
 variable "subnet_id" {
-  description = "The ID of the subnet to use" # User-supplied Subnet ID
-  default     = ""                            # Replace this at runtime or via command-line vars
+  description = "The ID of the subnet to use" # Supplied by user or pipeline
+  default     = ""
 }
 
-############################################
-# AMAZON-EBS SOURCE BLOCK: BUILD CUSTOM UBUNTU IMAGE
-############################################
 
+# ------------------------------------------------------------------------------------------
+# Amazon-EBS Source Block
+# - Launches a temporary EC2 instance from the base Ubuntu AMI
+# - Provisions software and configuration
+# - Creates a reusable AMI with a timestamp-based name
+# ------------------------------------------------------------------------------------------
 source "amazon-ebs" "rstudio_ami" {
-  region        = var.region        # Use configured AWS region
-  instance_type = var.instance_type # Use configured EC2 instance type
-  source_ami    = data.amazon-ami.ubuntu_2404.id
-  ssh_username  = "ubuntu"                                        # Default Ubuntu AMI login user
-  ami_name      = "rstudio_ami_${replace(timestamp(), ":", "-")}" # Unique AMI name using timestamp
-  ssh_interface = "public_ip"                                     # Use public IP for provisioning connection
-  vpc_id        = var.vpc_id                                      # Use specific VPC (required for custom networking)
-  subnet_id     = var.subnet_id                                   # Use specific subnet (must allow outbound internet)
+  region        = var.region                       # AWS region
+  instance_type = var.instance_type                # EC2 instance type
+  source_ami    = data.amazon-ami.ubuntu_2404.id   # Base Ubuntu 24.04 AMI
+  ssh_username  = "ubuntu"                         # Default SSH user for Ubuntu
+  ami_name      = "rstudio_ami_${replace(timestamp(), ":", "-")}" # Timestamped AMI name
+  ssh_interface = "public_ip"                      # Use public IP for provisioning
+  vpc_id        = var.vpc_id                       # Target VPC
+  subnet_id     = var.subnet_id                    # Target Subnet (must allow outbound internet)
 
-  # Define EBS volume settings
+  # Root EBS Volume Configuration
   launch_block_device_mappings {
-    device_name           = "/dev/sda1" # Root device name
-    volume_size           = "16"        # Size in GiB for root volume
-    volume_type           = "gp3"       # Use gp3 volume for better performance
-    delete_on_termination = "true"      # Ensure volume is deleted with instance
+    device_name           = "/dev/sda1" # Root device
+    volume_size           = "16"        # Root volume size in GiB
+    volume_type           = "gp3"       # gp3: cost-effective SSD
+    delete_on_termination = "true"      # Cleanup volume when instance terminates
   }
 
   tags = {
-    Name = "rstudio_ami_${replace(timestamp(), ":", "-")}" # Tag the AMI with a recognizable name
+    Name = "rstudio_ami_${replace(timestamp(), ":", "-")}" # Tag AMI with unique name
   }
 }
 
-############################################
-# BUILD BLOCK: PROVISION FILES AND RUN SETUP SCRIPTS
-############################################
 
+# ------------------------------------------------------------------------------------------
+# Build Block: Provisioning Scripts
+# - Executes setup scripts inside the temporary EC2 instance
+# - Each script installs a specific set of software or config
+# ------------------------------------------------------------------------------------------
 build {
-  sources = ["source.amazon-ebs.rstudio_ami"] # Use the previously defined EBS source
+  sources = ["source.amazon-ebs.rstudio_ami"]
 
-  # Run install script inside the instance
+  # Install SSM agent for AWS Systems Manager integration
   provisioner "shell" {
     script          = "./ssm.sh"
     execute_command = "sudo -E bash '{{.Path}}'"
   }
 
-  # Run install script inside the instance
+  # Install base packages and dependencies
   provisioner "shell" {
     script          = "./packages.sh"
     execute_command = "sudo -E bash '{{.Path}}'"
   }
 
-  # Run install script inside the instance
+  # Install AWS CLI tools
   provisioner "shell" {
     script          = "./awscli.sh"
     execute_command = "sudo -E bash '{{.Path}}'"
   }
 
-  # Run install script inside the instance
+  # Install and configure RStudio Server
   provisioner "shell" {
     script          = "./rstudio.sh"
     execute_command = "sudo -E bash '{{.Path}}'"
   }
-
 }

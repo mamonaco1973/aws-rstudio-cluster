@@ -1,72 +1,96 @@
-# Define the AWS provider and set the region to us-east-1 (N. Virginia)
-# Modify this if your deployment requires a different AWS region
+# ==========================================================================================
+# AWS Provider + Data Sources (Windows AMI + AD Infrastructure)
+# ------------------------------------------------------------------------------------------
+# Purpose:
+#   - Configures AWS provider in us-east-1 (N. Virginia)
+#   - Fetches existing infrastructure components for Active Directory integration:
+#       * Secrets Manager secret (AD admin credentials)
+#       * Subnets (VM, public, AD placement)
+#       * VPC (Active Directory environment)
+#       * Latest Windows Server 2022 AMI (from Amazon)
+# ==========================================================================================
+
+
+# ------------------------------------------------------------------------------------------
+# AWS Provider
+# - Defines AWS provider region (override for multi-region deployments)
+# ------------------------------------------------------------------------------------------
 provider "aws" {
-  region = "us-east-1"
+  region = "us-east-1" # Default region: N. Virginia
 }
 
-# Fetch AWS Secrets Manager secrets for the AD admin user
-# These secrets store AD credentials for authentication purposes
 
-
+# ------------------------------------------------------------------------------------------
+# Secrets Manager: AD Admin Credentials
+# - Retrieves stored secret for AD administrator credentials
+# ------------------------------------------------------------------------------------------
 data "aws_secretsmanager_secret" "admin_secret" {
-  name = "admin_ad_credentials" # Secret name for the admin user in AWS Secrets Manager
+  name = "admin_ad_credentials"
 }
 
+
+# ------------------------------------------------------------------------------------------
+# Subnet Lookups
+# - Retrieves subnets by tag for VM placement, public ALB, and AD servers
+# ------------------------------------------------------------------------------------------
 data "aws_subnet" "vm_subnet_1" {
   filter {
-    name   = "tag:Name"      # Match based on the 'Name' tag
-    values = ["vm-subnet-1"] # Look for a subnet tagged as "vm-subnet-1"
+    name   = "tag:Name"
+    values = ["vm-subnet-1"]
   }
 }
 
 data "aws_subnet" "vm_subnet_2" {
   filter {
-    name   = "tag:Name"      # Match based on the 'Name' tag
-    values = ["vm-subnet-2"] # Look for a subnet tagged as "vm-subnet-2"
+    name   = "tag:Name"
+    values = ["vm-subnet-2"]
   }
 }
 
 data "aws_subnet" "pub_subnet_1" {
   filter {
-    name   = "tag:Name"     # Match based on the 'Name' tag
-    values = ["pub-subnet-1"] # Look for a subnet tagged as "pub-subnet"
+    name   = "tag:Name"
+    values = ["pub-subnet-1"]
   }
 }
 
 data "aws_subnet" "pub_subnet_2" {
   filter {
-    name   = "tag:Name"     # Match based on the 'Name' tag
-    values = ["pub-subnet-2"] # Look for a subnet tagged as "pub-subnet-2"
+    name   = "tag:Name"
+    values = ["pub-subnet-2"]
   }
 }
 
 data "aws_subnet" "ad_subnet" {
   filter {
-    name   = "tag:Name"    # Match based on the 'Name' tag
-    values = ["ad-subnet"] # Look for a subnet tagged as "ad-subnet"
+    name   = "tag:Name"
+    values = ["ad-subnet"]
   }
 }
 
-# Retrieve details of the AWS VPC where Active Directory components will be deployed
-# Uses a tag-based filter to locate the correct VPC
 
+# ------------------------------------------------------------------------------------------
+# VPC Lookup
+# - Retrieves AD-specific VPC by Name tag
+# ------------------------------------------------------------------------------------------
 data "aws_vpc" "ad_vpc" {
   filter {
     name   = "tag:Name"
-    values = ["ad-vpc"] # Look for a VPC tagged as "ad-vpc"
+    values = ["ad-vpc"]
   }
 }
 
-# Fetch the most recent Windows Server 2022 AMI provided by AWS
-# This ensures we deploy the latest Windows Server OS image
 
+# ------------------------------------------------------------------------------------------
+# AMI Lookup: Windows Server 2022
+# - Selects the most recent Windows Server 2022 AMI published by Amazon
+# ------------------------------------------------------------------------------------------
 data "aws_ami" "windows_ami" {
-  most_recent = true       # Fetch the latest Windows Server AMI
-  owners      = ["amazon"] # AWS official account for Windows AMIs
+  most_recent = true
+  owners      = ["amazon"] # AWS official AMIs
 
   filter {
-    name   = "name"                                      # Filter AMIs by name pattern
-    values = ["Windows_Server-2022-English-Full-Base-*"] # Match Windows Server 2022 AMI
+    name   = "name"
+    values = ["Windows_Server-2022-English-Full-Base-*"]
   }
 }
-

@@ -1,116 +1,98 @@
-# WARNING: This configuration allows unrestricted access from the internet (0.0.0.0/0)
-# It is highly insecure and should be restricted to trusted IPs.
-# Consider limiting access to known CIDR ranges instead.
+# ==========================================================================================
+# Security Groups: RDP (Windows) + SSH/SMB (Linux)
+# ------------------------------------------------------------------------------------------
+# Purpose:
+#   - Defines network access for Windows (RDP 3389) and Linux (SSH 22, SMB 445) instances
+#   - Provides ICMP (ping) access for diagnostics
+#   - Allows all outbound traffic by default
+#
+# ⚠️ WARNING:
+#   - Current configuration allows unrestricted inbound access (0.0.0.0/0)
+#   - Highly insecure; use only for lab/demo environments
+#   - In production, restrict to trusted IP CIDR ranges or VPN access
+# ==========================================================================================
 
-# Security Group for RDP (Port 3389) - Used for Remote Desktop Protocol access to Windows instances
+
+# ------------------------------------------------------------------------------------------
+# Resource: Security Group for RDP (Windows)
+# - Allows inbound RDP (3389) + ICMP
+# - Open to all IPs (for testing/demo purposes only)
+# ------------------------------------------------------------------------------------------
 resource "aws_security_group" "ad_rdp_sg" {
-  name        = "ad-rdp-security-group"              # Security Group name
-  description = "Allow RDP access from the internet" # Description of the security group
-  vpc_id      = data.aws_vpc.ad_vpc.id               # Associates the security group with the specified VPC
+  name        = "ad-rdp-security-group"              # Security group name
+  description = "Allow RDP access from the internet" # Purpose
+  vpc_id      = data.aws_vpc.ad_vpc.id               # Target VPC
 
-  # INGRESS: Defines inbound rules allowing access to port 3389 (RDP)
+  # Ingress: RDP access (port 3389)
   ingress {
-    description = "Allow RDP from anywhere" # This rule permits RDP access from all IPs
-    from_port   = 3389                      # Start of port range (RDP default port)
-    to_port     = 3389                      # End of port range (same as start for a single port)
-    protocol    = "tcp"                     # Protocol type (TCP for RDP)
-    cidr_blocks = ["0.0.0.0/0"]             # WARNING: Allows traffic from ANY IP address (highly insecure!)
+    description = "Allow RDP from anywhere"
+    from_port   = 3389
+    to_port     = 3389
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # ⚠️ Open to all IPs
   }
 
-  # INGRESS: Defines inbound rules allowing ICMP (ping)
+  # Ingress: ICMP (ping)
   ingress {
     description = "Allow ICMP (ping) from anywhere"
-    from_port   = -1 # ICMP doesn't use ports, so use -1
+    from_port   = -1
     to_port     = -1
-    protocol    = "icmp"        # Protocol type for ICMP
-    cidr_blocks = ["0.0.0.0/0"] # WARNING: open to all IPs (fine for testing, restrict later)
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"] # ⚠️ Open to all IPs
   }
 
-
-  # EGRESS: Allows all outbound traffic (default open rule)
+  # Egress: Allow all outbound traffic
   egress {
-    from_port   = 0             # Start of port range (0 means all ports)
-    to_port     = 0             # End of port range (0 means all ports)
-    protocol    = "-1"          # Protocol (-1 means all protocols)
-    cidr_blocks = ["0.0.0.0/0"] # Allows outbound traffic to ANY destination
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
-# ------------------------------------------------------------
-# Security Group for RStudio Server (Port 8787)
-# Used to allow web access to the RStudio Server interface
-# ------------------------------------------------------------
-# resource "aws_security_group" "rstudio_sg" {
-#   name        = "rstudio-security-group"              # Security Group name
-#   description = "Allow RStudio Server (port 8787) access from the internet"
-#   vpc_id      = data.aws_vpc.ad_vpc.id                # Associates the security group with the specified VPC
 
-#   # INGRESS: Defines inbound rules allowing access to port 8787 (RStudio default port)
-#   ingress {
-#     description = "Allow RStudio Server from anywhere"
-#     from_port   = 8787                      # Start of port range (RStudio default port)
-#     to_port     = 8787                      # End of port range (same as start for a single port)
-#     protocol    = "tcp"                     # Protocol type (TCP for web interface)
-#     cidr_blocks = ["0.0.0.0/0"]             # WARNING: Allows traffic from ANY IP (lock down in production)
-#   }
-
-#   # INGRESS: Defines inbound rules allowing ICMP (ping)
-#   ingress {
-#     description = "Allow ICMP (ping) from anywhere"
-#     from_port   = -1
-#     to_port     = -1
-#     protocol    = "icmp"
-#     cidr_blocks = ["0.0.0.0/0"]             # WARNING: open to all IPs (fine for testing, restrict later)
-#   }
-
-#   # EGRESS: Allows all outbound traffic (default open rule)
-#   egress {
-#     from_port   = 0
-#     to_port     = 0
-#     protocol    = "-1"
-#     cidr_blocks = ["0.0.0.0/0"]
-#   }
-# }
-
-# Security Group for SSH (Port 22) - Used for Secure Shell access to Linux instances
+# ------------------------------------------------------------------------------------------
+# Resource: Security Group for SSH/SMB (Linux)
+# - Allows inbound SSH (22), SMB (445), + ICMP
+# - Open to all IPs (for testing/demo purposes only)
+# ------------------------------------------------------------------------------------------
 resource "aws_security_group" "ad_ssh_sg" {
-  name        = "ad-ssh-security-group"              # Security Group name
-  description = "Allow SSH access from the internet" # Description of the security group
-  vpc_id      = data.aws_vpc.ad_vpc.id               # Associates the security group with the specified VPC
+  name        = "ad-ssh-security-group"              # Security group name
+  description = "Allow SSH access from the internet" # Purpose
+  vpc_id      = data.aws_vpc.ad_vpc.id               # Target VPC
 
-  # INGRESS: Defines inbound rules allowing access to port 22 (SSH)
+  # Ingress: SSH access (port 22)
   ingress {
-    description = "Allow SSH from anywhere" # This rule permits SSH access from all IPs
-    from_port   = 22                        # Start of port range (SSH default port)
-    to_port     = 22                        # End of port range (same as start for a single port)
-    protocol    = "tcp"                     # Protocol type (TCP for SSH)
-    cidr_blocks = ["0.0.0.0/0"]             # WARNING: Allows traffic from ANY IP address (highly insecure!)
+    description = "Allow SSH from anywhere"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # ⚠️ Open to all IPs
   }
 
-  # INGRESS: Defines inbound rules allowing access to port 445 (SMB)
+  # Ingress: SMB access (port 445)
   ingress {
-    description = "Allow SMB from anywhere" # This rule permits SMB access from all IPs
-    from_port   = 445                       # Start of port range (SMB default port)
-    to_port     = 445                       # End of port range (same as start for a single port)
-    protocol    = "tcp"                     # Protocol type (TCP for SMB)
-    cidr_blocks = ["0.0.0.0/0"]             # WARNING: Allows traffic from ANY IP address (highly insecure!)
+    description = "Allow SMB from anywhere"
+    from_port   = 445
+    to_port     = 445
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # ⚠️ Open to all IPs
   }
 
-  # INGRESS: Defines inbound rules allowing ICMP (ping)
+  # Ingress: ICMP (ping)
   ingress {
     description = "Allow ICMP (ping) from anywhere"
-    from_port   = -1 # ICMP doesn't use ports, so use -1
+    from_port   = -1
     to_port     = -1
-    protocol    = "icmp"        # Protocol type for ICMP
-    cidr_blocks = ["0.0.0.0/0"] # WARNING: open to all IPs (fine for testing, restrict later)
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"] # ⚠️ Open to all IPs
   }
 
-
-  # EGRESS: Allows all outbound traffic (default open rule)
+  # Egress: Allow all outbound traffic
   egress {
-    from_port   = 0             # Start of port range (0 means all ports)
-    to_port     = 0             # End of port range (0 means all ports)
-    protocol    = "-1"          # Protocol (-1 means all protocols)
-    cidr_blocks = ["0.0.0.0/0"] # Allows outbound traffic to ANY destination
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }

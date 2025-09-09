@@ -1,51 +1,80 @@
-# EC2 Instances and Launch Template for Load Balancer Integration
+# ==========================================================================================
+# EC2 Launch Template for Auto Scaling Group Integration
+# ------------------------------------------------------------------------------------------
+# Purpose:
+#   - Defines EC2 instance configuration for RStudio Server
+#   - Provides block device, networking, IAM, and user data settings
+#   - Used by the Auto Scaling Group (ASG) to provision instances consistently
+# ==========================================================================================
 
-# Launch Template for Autoscaling Group
+
+# ------------------------------------------------------------------------------------------
+# Resource: Launch Template
+# - Standardizes EC2 instance settings for RStudio
+# - Ensures consistent configuration when scaled by the ASG
+# ------------------------------------------------------------------------------------------
 resource "aws_launch_template" "rstudio_launch_template" {
   name        = "rstudio-launch-template" # Launch template name
   description = "Launch template for rstudio autoscaling"
 
-  # Root volume configuration
+
+  # ----------------------------------------------------------------------------------------
+  # Root Volume Configuration
+  # - Defines the instance root disk characteristics
+  # ----------------------------------------------------------------------------------------
   block_device_mappings {
     device_name = "/dev/xvda" # Root device name
 
     ebs {
-      delete_on_termination = true  # Delete volume on instance termination
-      volume_size           = 16    # Volume size (GiB)
-      volume_type           = "gp3" # Volume type
-      encrypted             = true  # Enable encryption
+      delete_on_termination = true  # Automatically delete on instance termination
+      volume_size           = 16    # Root volume size (GiB)
+      volume_type           = "gp3" # General-purpose SSD (gp3)
+      encrypted             = true  # Enable encryption at rest
     }
   }
 
-  # Network settings
+
+  # ----------------------------------------------------------------------------------------
+  # Network Configuration
+  # - Attaches ENI with security groups and no public IP
+  # ----------------------------------------------------------------------------------------
   network_interfaces {
-    associate_public_ip_address = false # Assign public IP
-    delete_on_termination       = true  # Delete interface on instance termination
-    security_groups = [                 # Security groups for network access
+    associate_public_ip_address = false # Do not assign public IP
+    delete_on_termination       = true  # Auto-delete interface on termination
+    security_groups = [                 # Security group for access control
       aws_security_group.rstudio_sg.id
     ]
   }
 
-  # IAM instance profile
+
+  # ----------------------------------------------------------------------------------------
+  # IAM Instance Profile
+  # - Grants permissions for EC2 to retrieve secrets/config
+  # ----------------------------------------------------------------------------------------
   iam_instance_profile {
     name = data.aws_iam_instance_profile.ec2_secrets_profile.name
   }
 
-  # Instance details
-  instance_type = "t3.medium"                        # Instance type
-  image_id      = data.aws_ami.latest_rstudio_ami.id # AMI ID (using variable for flexibility)
 
-  # ----------------------------------------------------------------------------------------------
+  # ----------------------------------------------------------------------------------------
+  # Instance Settings
+  # - Defines instance type and base AMI
+  # ----------------------------------------------------------------------------------------
+  instance_type = "t3.medium"                        # Instance size
+  image_id      = data.aws_ami.latest_rstudio_ami.id # AMI ID (latest RStudio AMI)
+
+
+  # ----------------------------------------------------------------------------------------
   # User Data (Bootstrapping)
-  # ----------------------------------------------------------------------------------------------
-  # Executes a startup script on first boot.
-  # The script is parameterized with environment-specific values:
-  # - admin_secret   : Name of the AWS Secrets Manager secret with AD admin credentials
-  # - domain_fqdn    : Fully Qualified Domain Name of the AD domain
-  # - efs_mnt_server : DNS name of the EFS mount target
-  # - netbios        : NetBIOS short name of the AD domain
-  # - realm          : Kerberos realm (usually uppercase domain name)
-  # - force_group    : Default group applied to created files/directories
+  # - Injects startup script to configure RStudio on launch
+  # - Parameters:
+  #   * admin_secret   : AD admin credentials (Secrets Manager)
+  #   * domain_fqdn    : Fully Qualified AD domain name
+  #   * efs_mnt_server : DNS name of EFS mount target
+  #   * netbios        : NetBIOS domain short name
+  #   * realm          : Kerberos realm (uppercase domain)
+  #   * force_group    : Default group for file ownership
+  # ----------------------------------------------------------------------------------------
   user_data = base64encode(templatefile("./scripts/rstudio.sh", {
     admin_secret   = "admin_ad_credentials"
     domain_fqdn    = var.dns_zone
@@ -56,16 +85,18 @@ resource "aws_launch_template" "rstudio_launch_template" {
   }))
 
 
-
+  # ----------------------------------------------------------------------------------------
+  # Tags
+  # - Assign identifiers to Launch Template and EC2 instances
+  # ----------------------------------------------------------------------------------------
   tags = {
-    Name = "rstudio-launch-template" # Tag for resource identification
+    Name = "rstudio-launch-template" # Resource tag for LT
   }
 
-  # Tag specifications
   tag_specifications {
-    resource_type = "instance" # Tag for EC2 instances
+    resource_type = "instance" # Apply tags to EC2 instances
     tags = {
-      Name = "rstudio-instance" # Tag name
+      Name = "rstudio-instance" # Instance name tag
     }
   }
 }
