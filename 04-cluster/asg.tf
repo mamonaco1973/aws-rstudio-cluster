@@ -69,7 +69,7 @@ resource "aws_autoscaling_group" "rstudio_asg" {
   ]
 
   desired_capacity          = 1     # Desired instance count
-  max_size                  = 1     # Max instances
+  max_size                  = 4     # Max instances
   min_size                  = 1     # Min instances
   health_check_type         = "ELB" # Use ALB health checks
   health_check_grace_period = 300   # Wait 5 min before health evaluation

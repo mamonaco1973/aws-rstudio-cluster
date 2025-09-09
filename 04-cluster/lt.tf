@@ -60,7 +60,7 @@ resource "aws_launch_template" "rstudio_launch_template" {
   # Instance Settings
   # - Defines instance type and base AMI
   # ----------------------------------------------------------------------------------------
-  instance_type = "t3.medium"                        # Instance size
+  instance_type = "m5.large"                         # Instance size
   image_id      = data.aws_ami.latest_rstudio_ami.id # AMI ID (latest RStudio AMI)
 
 
