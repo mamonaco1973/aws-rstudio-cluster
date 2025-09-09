@@ -257,9 +257,9 @@ chmod 770 /efs/data
 chmod 700 /home/*
 
 cd /efs
-git clone https://github.com/mamonaco1973/aws-efs.git
-chmod -R 775 aws-efs
-chgrp -R ${force_group} aws-efs
+git clone https://github.com/mamonaco1973/aws-rstudio-cluster.git
+chmod -R 775 aws-rstudio-cluster
+chgrp -R ${force_group} aws-rstudio-cluster
 
 
 # =================================================================================
