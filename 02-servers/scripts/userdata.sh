@@ -76,6 +76,8 @@ mount /efs
 
 mkdir -p /efs/home
 mkdir -p /efs/data
+mkdir -p /efs/rlibs
+
 echo "${efs_mnt_server}:/home /home  efs   _netdev,tls  0 0" | sudo tee -a /etc/fstab
 systemctl daemon-reload
 mount /home
@@ -253,7 +255,10 @@ su -c "exit" edavis
 # Set EFS directory ownership and permissions
 chgrp ${force_group} /efs
 chgrp ${force_group} /efs/data
+chgrp ${force_group} /efs/rlibs
+
 chmod 770 /efs
+chmod 770 /efs/rlibs
 chmod 770 /efs/data
 chmod 700 /home/*
 
