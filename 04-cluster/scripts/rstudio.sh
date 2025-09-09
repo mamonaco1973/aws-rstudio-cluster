@@ -54,6 +54,7 @@ sudo sed -i 's|fallback_homedir = /home/%u@%d|fallback_homedir = /home/%u|' \
 sudo sed -i 's/^access_provider = ad$/access_provider = simple\nsimple_allow_groups = ${force_group}/' /etc/sssd/sssd.conf
 
 # Prevent XAuthority warnings for new AD users
+ln -s /efs /etc/skel/efs
 touch /etc/skel/.Xauthority
 chmod 600 /etc/skel/.Xauthority
 

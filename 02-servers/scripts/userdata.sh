@@ -244,6 +244,7 @@ sudo sed -i 's/^\(\s*HOME_MODE\s*\)[0-9]\+/\10700/' /etc/login.defs
 
 # Trigger home directory creation for specific test accounts
 
+ln -s /efs /etc/skel/efs
 su -c "exit" rpatel
 su -c "exit" jsmith
 su -c "exit" akumar
