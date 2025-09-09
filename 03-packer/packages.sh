@@ -25,7 +25,7 @@ apt-get install -y less unzip realmd sssd-ad sssd-tools libnss-sss \
 
 echo "=== Phase 2: Core build chain for R ==="  
 apt-get install -y build-essential gfortran \
-    libxml2-dev libcurl4-openssl-dev libssl-dev  
+    libxml2-dev libcurl4-openssl-dev libssl-dev cmake
 
 echo "=== Phase 3: Math & compression libraries ==="  
 apt-get install -y libgsl-dev libblas-dev liblapack-dev \
@@ -34,7 +34,7 @@ apt-get install -y libgsl-dev libblas-dev liblapack-dev \
 echo "=== Phase 4: Graphics & text stack ==="  
 apt-get install -y libcairo2-dev libxt-dev libx11-dev libxpm-dev \
     libfreetype6-dev libharfbuzz-dev libfribidi-dev  \
-    libglu1-mesa-dev freeglut3-dev mesa-common-dev
+    libglu1-mesa-dev freeglut3-dev mesa-common-dev libabsl-dev
 
 echo "=== Phase 5: Database & spatial libraries ==="  
 apt-get install -y libsqlite3-dev libpq-dev libmariadb-dev \

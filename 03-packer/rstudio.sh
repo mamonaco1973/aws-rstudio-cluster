@@ -14,10 +14,13 @@ apt-get update
 apt-get install -y r-base r-base-dev
 
 # ---------------------------------------------------------------------------------
-# Install Python Support
+# Install Various R packages and rebuild them.
 # ---------------------------------------------------------------------------------
 
-Rscript -e 'install.packages(c("jsonlite", "png", "reticulate"), repos="https://cloud.r-project.org")'
+# Installing R Packages can take a quite a long time - users can install these
+# dynamically so I'll skip making these part of the AMI.
+
+#Rscript -e 'install.packages(c("jsonlite", "png", "reticulate","ggplot2","gganimate"), repos="https://cloud.r-project.org")'
 
 # ---------------------------------------------------------------------------------
 # Install RStudio Community Edition
