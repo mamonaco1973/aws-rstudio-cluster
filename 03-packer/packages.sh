@@ -44,9 +44,9 @@ echo "=== Phase 6: Extra formats and science libs ==="
 apt-get install -y libmagick++-dev libpoppler-cpp-dev \
     libhdf5-dev libnetcdf-dev default-jdk  
 
-echo "=== Phase 7: LaTeX (optional, heavy) ==="  
-apt-get install -y texlive-latex-base texlive-fonts-recommended \
-    texlive-fonts-extra texlive-latex-extra  
+# echo "=== Phase 7: LaTeX (optional, heavy) ==="  
+# apt-get install -y texlive-latex-base texlive-fonts-recommended \
+#     texlive-fonts-extra texlive-latex-extra  
 
 echo "=== Phase 8: Clean up ==="  
 apt-get autoremove -y  
