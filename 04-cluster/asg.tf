@@ -50,4 +50,6 @@ resource "aws_autoscaling_group" "rstudio_asg" {
   default_instance_warmup   = 300   # aligns warmup with grace period
 
   target_group_arns = [aws_lb_target_group.rstudio_alb_tg.arn] #  Associated ALB target group
+
+  depends_on = [ aws_lb.rstudio_alb ]
 }
