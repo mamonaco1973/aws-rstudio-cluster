@@ -55,14 +55,14 @@ resource "aws_instance" "efs_gateway_instance" {
   # ----------------------------------------------------------------------------------------------
   # - Places the instance into a designated VPC subnet.
   # - Applies one or more security groups to control inbound/outbound traffic.
-  subnet_id = data.aws_subnet.vm_subnet_1.id
+  subnet_id = data.aws_subnet.pub_subnet_1.id
 
   vpc_security_group_ids = [
     aws_security_group.ad_ssh_sg.id # Allows SSH access; extend with SSM SG if required
   ]
 
   # Assigns a public IP to the instance at launch (enables external SSH/RDP if allowed by SGs).
-  associate_public_ip_address = false
+  associate_public_ip_address = true
 
   # ----------------------------------------------------------------------------------------------
   # IAM Role / Instance Profile

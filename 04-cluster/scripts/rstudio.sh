@@ -81,28 +81,11 @@ sudo sed -i 's/^\(\s*HOME_MODE\s*\)[0-9]\+/\10700/' /etc/login.defs
 # Section 7: Configure R Library Paths to include /efs/rlibs
 # ---------------------------------------------------------------------------------
 
-sudo tee -a /usr/lib/R/etc/Rprofile.site > /dev/null <<'EOF'
-
-## Reorder library paths:
-## - user library first (create if missing)
-## - /efs/rlibs second
-## - system libraries last
-
-paths <- .libPaths()
-
-userlib <- file.path(Sys.getenv("HOME"), "R",
-                     paste0(R.version$platform, "-library"),
-                     paste(getRversion()[,1:2], collapse = "."))
-
-if (!dir.exists(userlib)) {
-    dir.create(userlib, recursive = TRUE, showWarnings = FALSE)
-}
-
-systemlibs <- paths[!grepl(Sys.getenv("HOME"), paths)]
-
-.libPaths(c(userlib, "/efs/rlibs", systemlibs))
+cat > /usr/lib/R/etc/Renviron.site <<'EOF'
+R_LIBS_USER=~/R/x86_64-pc-linux-gnu-library/%v
+R_LIBS_SITE="/efs/rlibs:/usr/local/lib/R/site-library:/usr/lib/R/library"
+_R_CHECK_COMPILATION_FLAGS_KNOWN_='-Wformat -Werror=format-security -Wdate-time'
 EOF
-
 
 # =================================================================================
 # End of Script

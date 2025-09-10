@@ -72,7 +72,7 @@ rm -f -r awscliv2.zip aws
 mkdir -p /efs
 echo "${efs_mnt_server}:/ /efs   efs   _netdev,tls  0 0" | sudo tee -a /etc/fstab
 systemctl daemon-reload
-mount /efs
+mount /efs  >> /root/efs.log 2>&1
 
 mkdir -p /efs/home
 mkdir -p /efs/data
@@ -80,7 +80,8 @@ mkdir -p /efs/rlibs
 
 echo "${efs_mnt_server}:/home /home  efs   _netdev,tls  0 0" | sudo tee -a /etc/fstab
 systemctl daemon-reload
-mount /home
+mount /home  >> /root/efs.log 2>&1
+df -H >> /root/efs.log 2>&1
 
 # ---------------------------------------------------------------------------------
 # Section 4: Join Active Directory Domain
