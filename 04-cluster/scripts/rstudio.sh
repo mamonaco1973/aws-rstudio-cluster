@@ -11,6 +11,8 @@ mount /efs
 
 mkdir -p /efs/home
 mkdir -p /efs/data
+chgrp rstudio-admins /efs/rlibs
+
 echo "${efs_mnt_server}:/home /home  efs   _netdev,tls  0 0" | sudo tee -a /etc/fstab
 systemctl daemon-reload
 mount /home
@@ -81,10 +83,16 @@ sudo sed -i 's/^\(\s*HOME_MODE\s*\)[0-9]\+/\10700/' /etc/login.defs
 # Section 7: Configure R Library Paths to include /efs/rlibs
 # ---------------------------------------------------------------------------------
 
-cat > /usr/lib/R/etc/Renviron.site <<'EOF'
-R_LIBS_USER=~/R/x86_64-pc-linux-gnu-library/%v
-R_LIBS_SITE="/efs/rlibs:/usr/local/lib/R/site-library:/usr/lib/R/library"
-_R_CHECK_COMPILATION_FLAGS_KNOWN_='-Wformat -Werror=format-security -Wdate-time'
+cat <<'EOF' | sudo tee /usr/lib/R/etc/Rprofile.site > /dev/null
+# Ensure user library exists and comes first, then EFS, then system libs
+userlib <- Sys.getenv("R_LIBS_USER")
+
+if (!dir.exists(userlib)) {
+  dir.create(userlib, recursive = TRUE, showWarnings = FALSE)
+}
+
+efs <- "/efs/rlibs"
+.libPaths(c(userlib, efs, .libPaths()))
 EOF
 
 # =================================================================================
