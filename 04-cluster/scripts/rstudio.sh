@@ -11,7 +11,6 @@ mount /efs
 
 mkdir -p /efs/home
 mkdir -p /efs/data
-chgrp rstudio-admins /efs/rlibs
 
 echo "${efs_mnt_server}:/home /home  efs   _netdev,tls  0 0" | sudo tee -a /etc/fstab
 systemctl daemon-reload
@@ -94,6 +93,8 @@ if (!dir.exists(userlib)) {
 efs <- "/efs/rlibs"
 .libPaths(c(userlib, efs, .libPaths()))
 EOF
+
+chgrp rstudio-admins /efs/rlibs
 
 # =================================================================================
 # End of Script
