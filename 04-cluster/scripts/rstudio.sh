@@ -83,15 +83,14 @@ sudo sed -i 's/^\(\s*HOME_MODE\s*\)[0-9]\+/\10700/' /etc/login.defs
 # ---------------------------------------------------------------------------------
 
 cat <<'EOF' | sudo tee /usr/lib/R/etc/Rprofile.site > /dev/null
-# Ensure user library exists and comes first, then EFS, then system libs
-userlib <- Sys.getenv("R_LIBS_USER")
-
-if (!dir.exists(userlib)) {
-  dir.create(userlib, recursive = TRUE, showWarnings = FALSE)
-}
-
-efs <- "/efs/rlibs"
-.libPaths(c(userlib, efs, .libPaths()))
+local({
+  userlib <- Sys.getenv("R_LIBS_USER")
+  if (!dir.exists(userlib)) {
+    dir.create(userlib, recursive = TRUE, showWarnings = FALSE)
+  }
+  efs <- "/efs/rlibs"
+  .libPaths(c(userlib, efs, .libPaths()))
+})
 EOF
 
 chgrp rstudio-admins /efs/rlibs
