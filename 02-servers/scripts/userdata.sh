@@ -257,9 +257,9 @@ chgrp ${force_group} /efs
 chgrp ${force_group} /efs/data
 chgrp ${force_group} /efs/rlibs
 
-chmod 770 /efs
-chmod 770 /efs/rlibs
-chmod 770 /efs/data
+chmod 2770 /efs
+chmod 2775 /efs/rlibs
+chmod 2770 /efs/data
 chmod 700 /home/*
 
 cd /efs

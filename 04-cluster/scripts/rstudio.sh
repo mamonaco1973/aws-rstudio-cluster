@@ -77,6 +77,32 @@ echo "%linux-admins ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/10-linux-a
 # Force new home directories to have mode 0700 (private)
 sudo sed -i 's/^\(\s*HOME_MODE\s*\)[0-9]\+/\10700/' /etc/login.defs
 
+# ---------------------------------------------------------------------------------
+# Section 7: Configure R Library Paths to include /efs/rlibs
+# ---------------------------------------------------------------------------------
+
+sudo tee -a /usr/lib/R/etc/Rprofile.site > /dev/null <<'EOF'
+
+## Reorder library paths:
+## - /efs/rlibs first (install target)
+## - system libraries next
+## - user library last (create if missing)
+
+paths <- .libPaths()
+
+userlib <- file.path(Sys.getenv("HOME"), "R",
+                     paste0(R.version$platform, "-library"),
+                     paste(getRversion()[,1:2], collapse = "."))
+
+if (!dir.exists(userlib)) {
+    dir.create(userlib, recursive = TRUE, showWarnings = FALSE)
+}
+
+systemlibs <- paths[!grepl(Sys.getenv("HOME"), paths)]
+
+.libPaths(c("/efs/rlibs", systemlibs, userlib))
+EOF
+
 # =================================================================================
 # End of Script
 # =================================================================================
