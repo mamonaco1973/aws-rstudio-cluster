@@ -84,9 +84,9 @@ sudo sed -i 's/^\(\s*HOME_MODE\s*\)[0-9]\+/\10700/' /etc/login.defs
 sudo tee -a /usr/lib/R/etc/Rprofile.site > /dev/null <<'EOF'
 
 ## Reorder library paths:
-## - /efs/rlibs first (install target)
-## - system libraries next
-## - user library last (create if missing)
+## - user library first (create if missing)
+## - /efs/rlibs second
+## - system libraries last
 
 paths <- .libPaths()
 
@@ -100,8 +100,9 @@ if (!dir.exists(userlib)) {
 
 systemlibs <- paths[!grepl(Sys.getenv("HOME"), paths)]
 
-.libPaths(c("/efs/rlibs", systemlibs, userlib))
+.libPaths(c(userlib, "/efs/rlibs", systemlibs))
 EOF
+
 
 # =================================================================================
 # End of Script
