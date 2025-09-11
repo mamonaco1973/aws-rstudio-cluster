@@ -181,11 +181,21 @@ Follow these steps to provision a new user in the Active Directory domain and va
      - **rstudio-users** → grants standard RStudio access.  
      - **us** (or other geographic/departmental group as applicable).  
 
-8. **Validate RStudio Access**  
+8. **Validate User on Linux**  
+   - Open an **AWS Systems Manager (SSM)** session to the **`efs-samba-gateway`** instance.  
+   - Run the following command to confirm the user’s identity mapping:  
+     ```bash
+     id mcloud
+     ```  
+   - Verify that the output shows the correct **UID**, **GID**, and group memberships (e.g., `rstudio-users`).  
+
+![Linux](linux.png)
+
+9. **Validate RStudio Access**  
    - Open the RStudio cluster’s Application Load Balancer (ALB) URL in a browser (e.g., `https://rstudio-alb-xxxxxx.us-east-1.elb.amazonaws.com`).  
    - Log in with the new AD credentials.  
 
-9. **Verify Permissions**  
+10. **Verify Permissions**  
    - By default, the new user is **not** a member of the `rstudio-admin` group.  
    - Attempting to install packages into the **shared library path `/efs/rlibs`** should fail with a **“Permission denied”** error.  
    - This confirms the user is restricted to installing packages in their **personal user library** only.  
