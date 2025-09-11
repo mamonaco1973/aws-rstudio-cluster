@@ -46,7 +46,7 @@ session  include   common-session
 EOF
 
 # ---------------------------------------------------------------------------------
-# Deplpoy PAM script to create home directories on first login
+# Deploy PAM script to create home directories on first login
 # ---------------------------------------------------------------------------------
 
 cat <<'EOF' | tee /etc/pam.d/rstudio-mkhomedir.sh > /dev/null
