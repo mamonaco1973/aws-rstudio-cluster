@@ -75,7 +75,7 @@ resource "aws_launch_template" "rstudio_launch_template" {
   #   * realm          : Kerberos realm (uppercase domain)
   #   * force_group    : Default group for file ownership
   # ----------------------------------------------------------------------------------------
-  user_data = base64encode(templatefile("./scripts/rstudio.sh", {
+  user_data = base64encode(templatefile("./scripts/rstudio_booter.sh", {
     admin_secret   = "admin_ad_credentials"
     domain_fqdn    = var.dns_zone
     efs_mnt_server = data.aws_efs_file_system.efs.dns_name
