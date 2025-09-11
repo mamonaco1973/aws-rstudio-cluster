@@ -2,6 +2,8 @@
 
 This project extends the original **AWS Mini Active Directory** lab by deploying an **RStudio Server cluster** on Amazon Web Services (AWS). The cluster is designed for data science and analytics workloads, where multiple users need a scalable, domain-joined environment with consistent package management.
 
+![RStudio](rstudio.png)
+
 Instead of relying only on per-user libraries stored on ephemeral instance disks, this solution integrates **Amazon Elastic File System (EFS)** as a shared package and data backend. This allows RStudio nodes in an Auto Scaling Group (ASG) to mount a common EFS location, ensuring that installed R packages and project files are accessible across all nodes.
 
 Key capabilities demonstrated:
@@ -11,6 +13,9 @@ Key capabilities demonstrated:
 3. **Mini Active Directory Integration** – A Samba-based mini-AD domain controller provides authentication and DNS, so RStudio logins are domain-based and centrally managed.  
 
 Together, this architecture provides a reproducible, cloud-native RStudio environment where users get both personal home-directory libraries and access to a shared, scalable package repository.
+
+
+---
 
 ![AWS RStudio Cluster](aws-rstudio-cluster.png)
 
@@ -151,13 +156,15 @@ Follow these steps to provision a new user in the Active Directory domain and va
    - Provide the following:  
      - **Full Name:** Descriptive user name (e.g., “Mike Cloud”).  
      - **User Logon Name (User Principal Name / UPN):** e.g., `mcloud@rstudio.mikecloud.com`.  
-     - **Initial Password:** Set a secure temporary password, and configure “User must change password at next logon” if required by policy.  
+     - **Initial Password:** Set an initial password.
+
+![Windows](windows.png)
 
 5. **Assign a Unique UID Number**  
    - Open **PowerShell** on the AD server.  
    - Run the script located at:  
      ```powershell
-     Z:\efs\aws-rstudio-cluster\06-utils\getNextUID.ps1
+     Z:\efs\aws-rstudio-cluster\06-utils\getNextUID.bat
      ```  
    - This script returns the next available **`uidNumber`** to assign to the new account.  
 
