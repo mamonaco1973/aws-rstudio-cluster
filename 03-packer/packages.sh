@@ -24,7 +24,7 @@ apt-get install -y less unzip realmd sssd-ad sssd-tools libnss-sss \
     nfs-common  
 
 echo "=== Phase 2: Core build chain for R ==="  
-apt-get install -y build-essential gfortran \
+apt-get install -y build-essential gfortran python3-pip \
     libxml2-dev libcurl4-openssl-dev libssl-dev cmake
 
 echo "=== Phase 3: Math & compression libraries ==="  
