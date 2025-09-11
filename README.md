@@ -130,42 +130,64 @@ As part of this project, when the domain controller is provisioned, a set of sam
 
 The **`uidNumber`** (User ID) and **`gidNumber`** (Group ID) attributes are critical when integrating **Active Directory** with **Linux systems**, particularly in environments where **SSSD** ([System Security Services Daemon](https://sssd.io/)) or similar services are used for identity management. These attributes allow Linux hosts to recognize and map Active Directory users and groups into the **POSIX** (Portable Operating System Interface) user and group model.
 
+### Creating a New RStudio User
+
+Follow these steps to provision a new user in the Active Directory domain and validate their access to the RStudio cluster:
+
+1. **Connect to the Domain Controller**  
+   - Log into the **`windows-ad-admin`** server via Remote Desktop (RDP).  
+   - Use the `rpatel` or `jsmith` credentials that were provisioned during cluster deployment.  
+
+2. **Launch Active Directory Users and Computers (ADUC)**  
+   - From the Windows Start menu, open **“Active Directory Users and Computers.”**  
+   - Enable **Advanced Features** under the **View** menu. This ensures you can access the extended attribute tabs (e.g., UID/GID mappings).  
+
+3. **Navigate to the Users Organizational Unit (OU)**  
+   - In the left-hand tree, expand the domain (e.g., `rstudio.mikecloud.com`).  
+   - Select the **Users** OU where all cluster accounts are managed.  
+
+4. **Create a New User Object**  
+   - Right-click the Users OU and choose **New → User.**  
+   - Provide the following:  
+     - **Full Name:** Descriptive user name (e.g., “Mike Cloud”).  
+     - **User Logon Name (User Principal Name / UPN):** e.g., `mcloud@rstudio.mikecloud.com`.  
+     - **Initial Password:** Set a secure temporary password, and configure “User must change password at next logon” if required by policy.  
+
+5. **Assign a Unique UID Number**  
+   - Open **PowerShell** on the AD server.  
+   - Run the script located at:  
+     ```powershell
+     Z:\efs\aws-rstudio-cluster\06-utils\getNextUID.ps1
+     ```  
+   - This script returns the next available **`uidNumber`** to assign to the new account.  
+
+6. **Configure Advanced Attributes**  
+   - In the new user’s **Properties** dialog, open the **Attribute Editor** tab.  
+   - Set the following values:  
+     - `gidNumber` → **10001** (the shared GID for the `rstudio-users` group).  
+     - `uid` → match the user’s AD login ID (e.g., `rpatel`).  
+     - `uidNumber` → the unique numeric value returned from `getNextUID.ps1`.  
+
+7. **Add Group Memberships**  
+   - Go to the **Member Of** tab.  
+   - Add the user to the following groups:  
+     - **rstudio-users** → grants standard RStudio access.  
+     - **us** (or other geographic/departmental group as applicable).  
+
+8. **Validate RStudio Access**  
+   - Open the RStudio cluster’s Application Load Balancer (ALB) URL in a browser (e.g., `https://rstudio-alb-xxxxxx.us-east-1.elb.amazonaws.com`).  
+   - Log in with the new AD credentials.  
+
+9. **Verify Permissions**  
+   - By default, the new user is **not** a member of the `rstudio-admin` group.  
+   - Attempting to install packages into the **shared library path `/efs/rlibs`** should fail with a **“Permission denied”** error.  
+   - This confirms the user is restricted to installing packages in their **personal user library** only.  
+
 ---
 
-### Log into Windows Instance  
+✅ **Note:** If you need the user to have administrative rights (e.g., the ability to install packages into the shared library), add them to the **rstudio-admin** group in addition to `rstudio-users`.
 
-When the Windows instance boots, the [userdata script](02-servers/scripts/userdata.ps1) executes the following tasks:  
-
-- Install Active Directory Administrative Tools  
-- Install AWS CLI  
-- Join EC2 instance to Active Directory  
-- Grant RDP access to domain users  
-- Perform a final system reboot  
-
-Administrator credentials are stored in the `rpatel_ad_credentials` secret.
-
-![Windows EC2 Instance](windows.png)
-
----
-
-### Log into Linux Instance  
-
-When the Linux instance boots, the [userdata script](02-servers/scripts/userdata.sh) runs the following tasks:  
-
-- Update OS and install required packages  
-- Install AWS CLI  
-- Join the Active Directory domain with SSSD  
-- Enable password authentication for AD users  
-- Configure SSSD for AD integration  
-- Grant sudo privileges to the `linux-admins` group  
-- Sets up Samba and shares `/efs` for Windows access to EFS
-
-Linux user credentials are stored as secrets.
-
-![Linux EC2 Instance](linux.png)
-
----
-
+--- 
 ### Clean Up Infrastructure  
 
 When you are finished testing, you can remove all provisioned resources with:  
