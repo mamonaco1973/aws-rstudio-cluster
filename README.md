@@ -15,8 +15,6 @@ Key capabilities demonstrated:
 Together, this architecture provides a reproducible, cloud-native RStudio environment where users get both personal home-directory libraries and access to a shared, scalable package repository.
 
 
----
-
 ![AWS RStudio Cluster](aws-rstudio-cluster.png)
 
 ## Prerequisites
@@ -129,7 +127,6 @@ As part of this project, when the domain controller is provisioned, a set of sam
 | rpatel   | Raj Patel   | 10003     | 10001     | rstudio-users, india, linux-admins, rstudio-admins |
 | akumar   | Amit Kumar  | 10004     | 10001     | rstudio-users, india               |
 
----
 
 #### Understanding `uidNumber` and `gidNumber` for Linux Integration
 
@@ -203,8 +200,7 @@ Follow these steps to provision a new user in the Active Directory domain and va
 ---
 
 ✅ **Note:** If you need the user to have administrative rights (e.g., the ability to install packages into the shared library), add them to the **rstudio-admin** group in addition to `rstudio-users`.
-
---- 
+ 
 ### Clean Up Infrastructure  
 
 When you are finished testing, you can remove all provisioned resources with:  
