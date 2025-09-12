@@ -22,6 +22,7 @@ Together, this architecture provides a reproducible, cloud-native RStudio enviro
 * [An AWS Account](https://aws.amazon.com/console/)
 * [Install AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) 
 * [Install Latest Terraform](https://developer.hashicorp.com/terraform/install)
+* [Install Latest Packer](https://developer.hashicorp.com/packer/install)
 
 If this is your first time watching our content, we recommend starting with this video: [AWS + Terraform: Easy Setup](https://youtu.be/BCMQo0CB9wk). It provides a step-by-step guide to properly configure Terraform, Packer, and the AWS CLI.
 
