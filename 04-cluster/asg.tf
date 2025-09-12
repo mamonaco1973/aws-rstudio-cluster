@@ -68,9 +68,9 @@ resource "aws_autoscaling_group" "rstudio_asg" {
     data.aws_subnet.vm_subnet_2.id
   ]
 
-  desired_capacity          = 1     # Desired instance count
+  desired_capacity          = 2     # Desired instance count
   max_size                  = 4     # Max instances
-  min_size                  = 1     # Min instances
+  min_size                  = 2     # Min instances
   health_check_type         = "ELB" # Use ALB health checks
   health_check_grace_period = 300   # Wait 5 min before health evaluation
   default_cooldown          = 120   # Cooldown between scaling actions
