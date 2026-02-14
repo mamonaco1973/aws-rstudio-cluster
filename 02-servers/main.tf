@@ -1,42 +1,72 @@
-# ==========================================================================================
-# AWS Provider + Data Sources (Windows AMI + AD Infrastructure)
-# ------------------------------------------------------------------------------------------
+# ================================================================================
+# FILE: main.tf
+# ================================================================================
+#
 # Purpose:
-#   - Configures AWS provider in us-east-1 (N. Virginia)
-#   - Fetches existing infrastructure components for Active Directory integration:
-#       * Secrets Manager secret (AD admin credentials)
-#       * Subnets (VM, public, AD placement)
-#       * VPC (Active Directory environment)
-#       * Latest Windows Server 2022 AMI (from Amazon)
-# ==========================================================================================
+#   Configure AWS provider and resolve shared AD environment dependencies used
+#   by this root module. Lookups include:
+#     - Secrets Manager secret for AD administrator credentials
+#     - VPC and subnets for instance placement and AD connectivity
+#     - Most recent Windows Server 2022 AMI published by Amazon
+#
+# Design:
+#   - Provider is pinned to us-east-1 for consistent lab deployments.
+#   - Infrastructure is discovered via tag-based and VPC-scoped data sources.
+#   - Windows AMI lookup is constrained to official Amazon-published images.
+#
+# ================================================================================
 
 
-# ------------------------------------------------------------------------------------------
-# AWS Provider
-# - Defines AWS provider region (override for multi-region deployments)
-# ------------------------------------------------------------------------------------------
+# ================================================================================
+# SECTION: AWS Provider
+# ================================================================================
+
+# Default deployment region for this configuration.
 provider "aws" {
-  region = "us-east-1" # Default region: N. Virginia
+  region = "us-east-1"
 }
 
 
-# ------------------------------------------------------------------------------------------
-# Secrets Manager: AD Admin Credentials
-# - Retrieves stored secret for AD administrator credentials
-# ------------------------------------------------------------------------------------------
+# ================================================================================
+# SECTION: Secrets Manager - AD Administrator Credentials
+# ================================================================================
+
+# Retrieve Secrets Manager secret metadata for AD admin credential access.
+# Note: Reading secret value requires aws_secretsmanager_secret_version.
 data "aws_secretsmanager_secret" "admin_secret" {
-  name = "admin_ad_credentials"
+  name = "admin_ad_credentials_rstudio"
 }
 
 
-# ------------------------------------------------------------------------------------------
-# Subnet Lookups
-# - Retrieves subnets by tag for VM placement, public ALB, and AD servers
-# ------------------------------------------------------------------------------------------
+# ================================================================================
+# SECTION: VPC Lookup - Active Directory Environment
+# ================================================================================
+
+# Locate AD VPC by Name tag to scope all subnet lookups and deployments.
+data "aws_vpc" "ad_vpc" {
+  filter {
+    name   = "tag:Name"
+    values = [var.vpc_name]
+  }
+}
+
+
+# ================================================================================
+# SECTION: Subnet Lookups - Placement and Routing
+# ================================================================================
+
+# Resolve subnets by Name tag and restrict to the AD VPC for safety.
+# These subnets are used for VM placement, public resources, and AD access.
+
 data "aws_subnet" "vm_subnet_1" {
   filter {
     name   = "tag:Name"
     values = ["vm-subnet-1"]
+  }
+
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.ad_vpc.id]
   }
 }
 
@@ -45,12 +75,22 @@ data "aws_subnet" "vm_subnet_2" {
     name   = "tag:Name"
     values = ["vm-subnet-2"]
   }
+
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.ad_vpc.id]
+  }
 }
 
 data "aws_subnet" "pub_subnet_1" {
   filter {
     name   = "tag:Name"
     values = ["pub-subnet-1"]
+  }
+
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.ad_vpc.id]
   }
 }
 
@@ -59,6 +99,11 @@ data "aws_subnet" "pub_subnet_2" {
     name   = "tag:Name"
     values = ["pub-subnet-2"]
   }
+
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.ad_vpc.id]
+  }
 }
 
 data "aws_subnet" "ad_subnet" {
@@ -66,28 +111,23 @@ data "aws_subnet" "ad_subnet" {
     name   = "tag:Name"
     values = ["ad-subnet"]
   }
-}
 
-
-# ------------------------------------------------------------------------------------------
-# VPC Lookup
-# - Retrieves AD-specific VPC by Name tag
-# ------------------------------------------------------------------------------------------
-data "aws_vpc" "ad_vpc" {
   filter {
-    name   = "tag:Name"
-    values = ["ad-vpc"]
+    name   = "vpc-id"
+    values = [data.aws_vpc.ad_vpc.id]
   }
 }
 
 
-# ------------------------------------------------------------------------------------------
-# AMI Lookup: Windows Server 2022
-# - Selects the most recent Windows Server 2022 AMI published by Amazon
-# ------------------------------------------------------------------------------------------
+# ================================================================================
+# SECTION: AMI Lookup - Windows Server 2022
+# ================================================================================
+
+# Select most recent Windows Server 2022 base AMI published by Amazon.
+# AMI selection is pattern-based and should remain stable across patch releases.
 data "aws_ami" "windows_ami" {
   most_recent = true
-  owners      = ["amazon"] # AWS official AMIs
+  owners      = ["amazon"]
 
   filter {
     name   = "name"

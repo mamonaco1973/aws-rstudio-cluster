@@ -1,61 +1,74 @@
 #!/bin/bash
-# --------------------------------------------------------------------------------------------------
-# Description:
-# This script queries AWS EC2 for instances tagged with specific names and outputs their
-# associated public DNS names. It is primarily used to quickly locate endpoints for 
-# Windows and Linux AD instances deployed in AWS. It also retrieves the ALB DNS name.
+# ==============================================================================
+# validate.sh - Active Directory + RStudio Cluster Validation
+# ==============================================================================
+# Purpose:
+#   Validates the deployed AWS lab environment by retrieving:
+#     - Windows AD Administration host (public DNS for RDP access)
+#     - Linux EFS/Samba gateway host (private DNS)
+#     - RStudio Application Load Balancer endpoint
 #
-# REQUIREMENTS:
-#   - AWS CLI installed and configured with credentials/permissions.
-#   - Instances must be tagged with:
-#       * Name = windows-ad-instance
-#       * Name = efs-client-instance
-#   - ALB must be deployed with name "rstudio-alb"
-# --------------------------------------------------------------------------------------------------
+# Notes:
+#   - Requires AWS CLI configured with appropriate permissions.
+#   - Instances must be tagged correctly:
+#       Name = windows-ad-admin
+#       Name = efs-samba-gateway
+#   - ALB must exist with name "rstudio-alb"
+# ==============================================================================
 
-# --------------------------------------------------------------------------------------------------
+set -euo pipefail
+
+# ------------------------------------------------------------------------------
 # Configuration
-# --------------------------------------------------------------------------------------------------
-AWS_DEFAULT_REGION="us-east-1"   # AWS region where instances are deployed
+# ------------------------------------------------------------------------------
+export AWS_DEFAULT_REGION="us-east-1"
 
-# --------------------------------------------------------------------------------------------------
-# Lookup Windows AD Instance
-# --------------------------------------------------------------------------------------------------
+echo ""
+echo "============================================================================"
+echo "RStudio AD Lab - Validation Output"
+echo "============================================================================"
+echo ""
+
+# ------------------------------------------------------------------------------
+# Lookup Windows AD Admin Instance (Public DNS)
+# ------------------------------------------------------------------------------
 windows_dns=$(aws ec2 describe-instances \
   --filters "Name=tag:Name,Values=windows-ad-admin" \
   --query 'Reservations[].Instances[].PublicDnsName' \
-  --output text)
+  --output text | xargs)
 
-if [ -z "$windows_dns" ]; then
-  echo "WARNING: No Windows AD instance found with tag Name=windows-ad-admin"
+if [ -z "$windows_dns" ] || [ "$windows_dns" = "None" ]; then
+  echo "WARNING: windows-ad-admin not found or no public DNS"
 else
-  echo "NOTE: Windows Instance FQDN:       $(echo $windows_dns | xargs)"
+  echo "NOTE: Windows RDP Host FQDN: ${windows_dns}"
 fi
 
-# --------------------------------------------------------------------------------------------------
-# Lookup Linux AD Instance
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Lookup Linux EFS Gateway Instance (Private DNS)
+# ------------------------------------------------------------------------------
 linux_dns=$(aws ec2 describe-instances \
   --filters "Name=tag:Name,Values=efs-samba-gateway" \
   --query 'Reservations[].Instances[].PrivateDnsName' \
-  --output text)
+  --output text | xargs)
 
-if [ -z "$linux_dns" ]; then
-  echo "WARNING: No EFS Gateway instance found with tag Name=efs-samba-gateway"
+if [ -z "$linux_dns" ] || [ "$linux_dns" = "None" ]; then
+  echo "WARNING: efs-samba-gateway not found or no private DNS"
 else
-  echo "NOTE: EFS Gateway Instance FQDN:   $(echo $linux_dns | xargs)"
+  echo "NOTE: Linux Gateway Host FQDN: ${linux_dns}"
 fi
 
-# --------------------------------------------------------------------------------------------------
-# Lookup ALB DNS Name
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Lookup RStudio ALB
+# ------------------------------------------------------------------------------
 alb_dns=$(aws elbv2 describe-load-balancers \
   --names rstudio-alb \
   --query 'LoadBalancers[0].DNSName' \
-  --output text)
+  --output text | xargs)
 
-if [ -z "$alb_dns" ]; then
-  echo "WARNING: No ALB found with name rstudio-alb"
+if [ -z "$alb_dns" ] || [ "$alb_dns" = "None" ]; then
+  echo "WARNING: rstudio-alb not found"
 else
-  echo "NOTE: RStudio ALB Endpoint:        http://$alb_dns"
+  echo "NOTE: RStudio ALB Endpoint:  http://${alb_dns}"
 fi
+
+echo ""

@@ -1,48 +1,65 @@
-# ==========================================================================================
-# Mini Active Directory (mini-ad) Module Invocation
-# ------------------------------------------------------------------------------------------
+# ================================================================================
+# FILE: ad.tf
+# ================================================================================
+#
 # Purpose:
-#   - Calls the reusable "mini-ad" module to provision an Ubuntu-based AD Domain Controller
-#   - Passes in networking, DNS, and authentication parameters
-#   - Supplies user account definitions via a JSON blob generated from a template
-# ==========================================================================================
+#   Invoke the reusable mini-ad module to provision an Ubuntu-based Active
+#   Directory Domain Controller. Pass required networking, DNS, and identity
+#   parameters. Supply user account definitions via rendered JSON payload.
+#
+# Design:
+#   - Delegates AD infrastructure to external versioned module.
+#   - Injects randomized administrator and user credentials.
+#   - Supplies rendered JSON for automated user bootstrap.
+#   - Enforces dependency ordering for outbound internet access.
+#
+# Operational Notes:
+#   - NAT and route associations must exist before instance bootstrap.
+#   - users_json is rendered at apply time and passed to cloud-init.
+#   - Passwords originate from random_password resources in accounts.tf.
+#
+# ================================================================================
 
+
+# ================================================================================
+# SECTION: Mini Active Directory Module Invocation
+# ================================================================================
+
+# Provision Ubuntu-based AD Domain Controller using reusable module.
 module "mini_ad" {
-  source            = "github.com/mamonaco1973/module-aws-mini-ad" # GitHub repo source
-  netbios           = var.netbios                                  # NetBIOS domain name (e.g., MCLOUD)
-  vpc_id            = aws_vpc.ad-vpc.id                            # VPC where the AD will reside
-  realm             = var.realm                                    # Kerberos realm (usually UPPERCASE DNS domain)
-  users_json        = local.users_json                             # JSON blob of users and passwords (built below)
-  user_base_dn      = var.user_base_dn                             # Base DN for user accounts in LDAP
-  ad_admin_password = random_password.admin_password.result        # Randomized AD administrator password
-  dns_zone          = var.dns_zone                                 # DNS zone (e.g., mcloud.mikecloud.com)
-  subnet_id         = aws_subnet.ad-subnet.id                      # Subnet for AD VM placement
+  source            = "github.com/mamonaco1973/module-aws-mini-ad"
+  netbios           = var.netbios
+  vpc_id            = aws_vpc.ad-vpc.id
+  realm             = var.realm
+  users_json        = local.users_json
+  user_base_dn      = var.user_base_dn
+  ad_admin_password = random_password.admin_password.result
+  dns_zone          = var.dns_zone
+  subnet_id         = aws_subnet.ad-subnet.id
 
-  # Ensure NAT + route association exist before bootstrapping (for package repos, etc.)
+  # Ensure outbound connectivity exists before bootstrap execution.
   depends_on = [
     aws_nat_gateway.ad_nat,
     aws_route_table_association.rt_assoc_ad_private
   ]
 }
 
-# ==========================================================================================
-# Local Variable: users_json
-# ------------------------------------------------------------------------------------------
-# - Renders a JSON file (`users.json.template`) into a single JSON blob
-# - Injects unique random passwords for test/demo users
-# - Template variables are replaced with real values at runtime
-# - Passed into the VM bootstrap so users are created automatically
-# ==========================================================================================
 
+# ================================================================================
+# SECTION: Local Variable - users_json Rendering
+# ================================================================================
+
+# Render users.json.template into single JSON payload for bootstrap.
+# Inject randomized passwords and directory context values at apply time.
 locals {
   users_json = templatefile("./scripts/users.json.template", {
-    USER_BASE_DN    = var.user_base_dn                       # Base DN for placing new users in LDAP
-    DNS_ZONE        = var.dns_zone                           # AD-integrated DNS zone
-    REALM           = var.realm                              # Kerberos realm (FQDN in uppercase)
-    NETBIOS         = var.netbios                            # NetBIOS domain name
-    jsmith_password = random_password.jsmith_password.result # Random password for John Smith
-    edavis_password = random_password.edavis_password.result # Random password for Emily Davis
-    rpatel_password = random_password.rpatel_password.result # Random password for Raj Patel
-    akumar_password = random_password.akumar_password.result # Random password for Amit Kumar
+    USER_BASE_DN    = var.user_base_dn
+    DNS_ZONE        = var.dns_zone
+    REALM           = var.realm
+    NETBIOS         = var.netbios
+    jsmith_password = random_password.jsmith_password.result
+    edavis_password = random_password.edavis_password.result
+    rpatel_password = random_password.rpatel_password.result
+    akumar_password = random_password.akumar_password.result
   })
 }

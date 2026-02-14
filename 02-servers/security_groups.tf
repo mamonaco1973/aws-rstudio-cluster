@@ -1,47 +1,59 @@
-# ==========================================================================================
-# Security Groups: RDP (Windows) + SSH/SMB (Linux)
-# ------------------------------------------------------------------------------------------
-# Purpose:
-#   - Defines network access for Windows (RDP 3389) and Linux (SSH 22, SMB 445) instances
-#   - Provides ICMP (ping) access for diagnostics
-#   - Allows all outbound traffic by default
+# ================================================================================
+# FILE: security_groups.tf
+# ================================================================================
 #
-# ⚠️ WARNING:
-#   - Current configuration allows unrestricted inbound access (0.0.0.0/0)
-#   - Highly insecure; use only for lab/demo environments
-#   - In production, restrict to trusted IP CIDR ranges or VPN access
-# ==========================================================================================
+# Purpose:
+#   Define security groups for Windows and Linux instances within the AD lab.
+#   Exposes RDP (3389), SSH (22), SMB (445), and ICMP for testing scenarios.
+#
+# WARNING:
+#   - Inbound rules allow 0.0.0.0/0 and are NOT production safe.
+#   - Use only for controlled lab or demonstration environments.
+#   - Restrict to trusted CIDR ranges or VPN in production deployments.
+#
+# Design:
+#   - Separate security groups for Windows (RDP) and Linux (SSH/SMB).
+#   - ICMP enabled for diagnostic reachability testing.
+#   - All outbound traffic permitted by default.
+#
+# ================================================================================
 
 
-# ------------------------------------------------------------------------------------------
-# Resource: Security Group for RDP (Windows)
-# - Allows inbound RDP (3389) + ICMP
-# - Open to all IPs (for testing/demo purposes only)
-# ------------------------------------------------------------------------------------------
+# ================================================================================
+# SECTION: Security Group - Windows RDP Access
+# ================================================================================
+
+# Allows inbound RDP and ICMP for Windows hosts.
 resource "aws_security_group" "ad_rdp_sg" {
-  name        = "ad-rdp-security-group"              # Security group name
-  description = "Allow RDP access from the internet" # Purpose
-  vpc_id      = data.aws_vpc.ad_vpc.id               # Target VPC
+  name        = "ad-rdp-security-group"
+  description = "Allow RDP access for lab environments"
+  vpc_id      = data.aws_vpc.ad_vpc.id
 
-  # Ingress: RDP access (port 3389)
+  # --------------------------------------------------------------------------
+  # Ingress: RDP (TCP 3389)
+  # --------------------------------------------------------------------------
   ingress {
-    description = "Allow RDP from anywhere"
+    description = "Allow RDP from anywhere (lab only)"
     from_port   = 3389
     to_port     = 3389
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # ⚠️ Open to all IPs
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Ingress: ICMP (ping)
+  # --------------------------------------------------------------------------
+  # Ingress: ICMP (Ping)
+  # --------------------------------------------------------------------------
   ingress {
-    description = "Allow ICMP (ping) from anywhere"
+    description = "Allow ICMP from anywhere (lab only)"
     from_port   = -1
     to_port     = -1
     protocol    = "icmp"
-    cidr_blocks = ["0.0.0.0/0"] # ⚠️ Open to all IPs
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Egress: Allow all outbound traffic
+  # --------------------------------------------------------------------------
+  # Egress: Allow All Outbound
+  # --------------------------------------------------------------------------
   egress {
     from_port   = 0
     to_port     = 0
@@ -51,44 +63,52 @@ resource "aws_security_group" "ad_rdp_sg" {
 }
 
 
-# ------------------------------------------------------------------------------------------
-# Resource: Security Group for SSH/SMB (Linux)
-# - Allows inbound SSH (22), SMB (445), + ICMP
-# - Open to all IPs (for testing/demo purposes only)
-# ------------------------------------------------------------------------------------------
-resource "aws_security_group" "ad_ssh_sg" {
-  name        = "ad-ssh-security-group"              # Security group name
-  description = "Allow SSH access from the internet" # Purpose
-  vpc_id      = data.aws_vpc.ad_vpc.id               # Target VPC
+# ================================================================================
+# SECTION: Security Group - Linux SSH and SMB Access
+# ================================================================================
 
-  # Ingress: SSH access (port 22)
+# Allows inbound SSH, SMB, and ICMP for Linux hosts.
+resource "aws_security_group" "ad_ssh_sg" {
+  name        = "ad-ssh-security-group"
+  description = "Allow SSH and SMB access for lab environments"
+  vpc_id      = data.aws_vpc.ad_vpc.id
+
+  # --------------------------------------------------------------------------
+  # Ingress: SSH (TCP 22)
+  # --------------------------------------------------------------------------
   ingress {
-    description = "Allow SSH from anywhere"
+    description = "Allow SSH from anywhere (lab only)"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # ⚠️ Open to all IPs
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Ingress: SMB access (port 445)
+  # --------------------------------------------------------------------------
+  # Ingress: SMB (TCP 445)
+  # --------------------------------------------------------------------------
   ingress {
-    description = "Allow SMB from anywhere"
+    description = "Allow SMB from anywhere (lab only)"
     from_port   = 445
     to_port     = 445
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # ⚠️ Open to all IPs
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Ingress: ICMP (ping)
+  # --------------------------------------------------------------------------
+  # Ingress: ICMP (Ping)
+  # --------------------------------------------------------------------------
   ingress {
-    description = "Allow ICMP (ping) from anywhere"
+    description = "Allow ICMP from anywhere (lab only)"
     from_port   = -1
     to_port     = -1
     protocol    = "icmp"
-    cidr_blocks = ["0.0.0.0/0"] # ⚠️ Open to all IPs
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Egress: Allow all outbound traffic
+  # --------------------------------------------------------------------------
+  # Egress: Allow All Outbound
+  # --------------------------------------------------------------------------
   egress {
     from_port   = 0
     to_port     = 0

@@ -1,40 +1,64 @@
-# ==========================================================================================
-# IAM Role + Policy + Instance Profile for EC2 (Secrets Manager Access)
-# ------------------------------------------------------------------------------------------
+# ================================================================================
+# FILE: iam.tf
+# ================================================================================
+#
 # Purpose:
-#   - Grants EC2 instances permissions to read secrets from AWS Secrets Manager
-#   - Enables EC2 integration with AWS Systems Manager (SSM)
-#   - Provides a reusable IAM instance profile to attach to EC2/ASG launch templates
-# ==========================================================================================
+#   Define IAM role, policy, and instance profile for EC2 instances requiring
+#   read access to AWS Secrets Manager and integration with AWS Systems Manager.
+#
+# Design:
+#   - Role trusted by EC2 service via sts:AssumeRole.
+#   - Custom policy restricts Secrets Manager access to specific secret ARN.
+#   - AWS managed SSM policy enables Systems Manager agent functionality.
+#   - Stable unique suffix prevents name collisions across deployments.
+#
+# ================================================================================
 
 
-# ------------------------------------------------------------------------------------------
-# Resource: IAM Role for EC2
-# - Defines a trust policy allowing EC2 service to assume the role
-# ------------------------------------------------------------------------------------------
+# ================================================================================
+# SECTION: Stable Unique Identifier
+# ================================================================================
+
+# Generate short random suffix (stable per Terraform state).
+resource "random_id" "iam_suffix" {
+  byte_length = 3
+}
+
+# Construct normalized IAM identifier.
+locals {
+  iam_id = "${lower(var.netbios)}-${random_id.iam_suffix.hex}"
+}
+
+
+# ================================================================================
+# SECTION: IAM Role - EC2 Secrets Access
+# ================================================================================
+
+# IAM role trusted by EC2 service.
 resource "aws_iam_role" "ec2_secrets_role" {
-  name = "EC2SecretsAccessRole-${var.netbios}"
+  name = "tf-secrets-role-${local.iam_id}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
       Effect = "Allow"
       Principal = {
-        Service = "ec2.amazonaws.com" # Trusted principal: EC2 service
+        Service = "ec2.amazonaws.com"
       }
-      Action = "sts:AssumeRole" # Allow role assumption
+      Action = "sts:AssumeRole"
     }]
   })
 }
 
 
-# ------------------------------------------------------------------------------------------
-# Resource: IAM Policy (Secrets Manager Read Access)
-# - Grants EC2 permissions to read secrets required for AD integration
-# ------------------------------------------------------------------------------------------
+# ================================================================================
+# SECTION: IAM Policy - Secrets Manager Read Access
+# ================================================================================
+
+# Custom policy granting read-only access to AD admin secret.
 resource "aws_iam_policy" "secrets_policy" {
-  name        = "SecretsManagerReadAccess"
-  description = "Allows EC2 instance to read secrets from AWS Secrets Manager and manage IAM instance profiles"
+  name        = "SecretsManagerReadAccess-${local.iam_id}"
+  description = "Read access to specific Secrets Manager secret"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -42,11 +66,11 @@ resource "aws_iam_policy" "secrets_policy" {
       {
         Effect = "Allow"
         Action = [
-          "secretsmanager:GetSecretValue", # Fetch secret values
-          "secretsmanager:DescribeSecret"  # View secret metadata
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
         ]
         Resource = [
-          data.aws_secretsmanager_secret.admin_secret.arn # Restrict to AD admin secret
+          data.aws_secretsmanager_secret.admin_secret.arn
         ]
       }
     ]
@@ -54,31 +78,29 @@ resource "aws_iam_policy" "secrets_policy" {
 }
 
 
-# ------------------------------------------------------------------------------------------
-# Resource: IAM Role Policy Attachment (AmazonSSMManagedInstanceCore)
-# - Provides EC2 instances SSM agent permissions (patching, commands, inventory)
-# ------------------------------------------------------------------------------------------
+# ================================================================================
+# SECTION: IAM Role Policy Attachments
+# ================================================================================
+
+# Attach AWS managed SSM policy for Systems Manager integration.
 resource "aws_iam_role_policy_attachment" "attach_ssm_policy" {
   role       = aws_iam_role.ec2_secrets_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
-
-# ------------------------------------------------------------------------------------------
-# Resource: IAM Role Policy Attachment (Secrets Manager)
-# - Attaches custom Secrets Manager read policy to the EC2 role
-# ------------------------------------------------------------------------------------------
+# Attach custom Secrets Manager read policy to EC2 role.
 resource "aws_iam_role_policy_attachment" "attach_secrets_policy" {
   role       = aws_iam_role.ec2_secrets_role.name
   policy_arn = aws_iam_policy.secrets_policy.arn
 }
 
 
-# ------------------------------------------------------------------------------------------
-# Resource: IAM Instance Profile
-# - Binds the EC2 role to an instance profile for use in launch templates/ASG
-# ------------------------------------------------------------------------------------------
+# ================================================================================
+# SECTION: IAM Instance Profile
+# ================================================================================
+
+# Instance profile binds IAM role for EC2 association.
 resource "aws_iam_instance_profile" "ec2_secrets_profile" {
-  name = "EC2SecretsInstanceProfile-${var.netbios}"
+  name = "tf-secrets-profile-${lower(var.netbios)}"
   role = aws_iam_role.ec2_secrets_role.name
 }

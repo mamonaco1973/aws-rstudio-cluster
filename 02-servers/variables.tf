@@ -1,36 +1,71 @@
-# ==================================================================================================
-# Active Directory naming inputs
-# - dns_zone : FQDN for the AD DNS zone / domain (e.g., mcloud.mikecloud.com)
-# - realm    : Kerberos realm (typically the DNS zone in UPPERCASE)
-# - netbios  : Short (pre-Windows 2000) domain name used by legacy/NetBIOS-aware systems
-# ==================================================================================================
+# ================================================================================
+# FILE: variables.tf
+# ================================================================================
+#
+# Purpose:
+#   Define naming and infrastructure input variables for Active Directory
+#   deployment and supporting VPC resources.
+#
+# Naming Model:
+#   - dns_zone : Fully Qualified Domain Name for AD DNS namespace.
+#   - realm    : Kerberos realm (uppercase FQDN).
+#   - netbios  : Short legacy domain name (<= 15 characters).
+#
+# Notes:
+#   - dns_zone, realm, and netbios must remain logically consistent.
+#   - realm should equal upper(dns_zone) for Kerberos compatibility.
+#   - netbios should avoid special characters and exceed neither 15 chars.
+#
+# ================================================================================
 
-# --------------------------------------------------------------------------------
-# DNS zone / AD domain (FQDN)
-# Used by Samba AD DC for DNS namespace and domain identity
-# --------------------------------------------------------------------------------
+
+# ================================================================================
+# SECTION: Active Directory DNS Zone (FQDN)
+# ================================================================================
+
+# Fully Qualified Domain Name used for AD DNS namespace.
+# Example: rstudio.mikecloud.com
 variable "dns_zone" {
-  description = "AD DNS zone / domain (e.g., rstudio.mikecloud.com)"
+  description = "Active Directory DNS zone (FQDN)"
   type        = string
   default     = "rstudio.mikecloud.com"
 }
 
-# --------------------------------------------------------------------------------
-# Kerberos realm (UPPERCASE)
-# Convention: match dns_zone but uppercase; required by Kerberos config
-# --------------------------------------------------------------------------------
+
+# ================================================================================
+# SECTION: Kerberos Realm
+# ================================================================================
+
+# Kerberos realm value. Conventionally matches dns_zone in uppercase.
+# Example: RSTUDIO.MIKECLOUD.COM
 variable "realm" {
-  description = "Kerberos realm (usually DNS zone in UPPERCASE, e.g., RSTUDIO.MIKECLOUD.COM)"
+  description = "Kerberos realm (uppercase DNS zone)"
   type        = string
   default     = "RSTUDIO.MIKECLOUD.COM"
 }
 
-# --------------------------------------------------------------------------------
-# NetBIOS short domain name
-# Typically <= 15 characters, uppercase alphanumerics; used by legacy clients and some SMB flows
-# --------------------------------------------------------------------------------
+
+# ================================================================================
+# SECTION: NetBIOS Short Domain Name
+# ================================================================================
+
+# Legacy NetBIOS-compatible short domain name.
+# Typically uppercase, alphanumeric, <= 15 characters.
+# Example: RSTUDIO
 variable "netbios" {
-  description = "NetBIOS short domain name (e.g., RSTUDIO)"
+  description = "NetBIOS short domain name"
   type        = string
   default     = "RSTUDIO"
+}
+
+
+# ================================================================================
+# SECTION: VPC Naming
+# ================================================================================
+
+# Name assigned to the VPC resource created for this environment.
+variable "vpc_name" {
+  description = "Name for the VPC resource"
+  type        = string
+  default     = "rstudio-vpc"
 }

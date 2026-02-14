@@ -1,36 +1,62 @@
-# ==================================================================================================
-# Active Directory naming inputs
-# - dns_zone : FQDN for the AD DNS zone / domain (e.g., mcloud.mikecloud.com)
-# - realm    : Kerberos realm (typically the DNS zone in UPPERCASE)
-# - netbios  : Short (pre-Windows 2000) domain name used by legacy/NetBIOS-aware systems
-# ==================================================================================================
+# ================================================================================
+# FILE: variables.tf
+# ================================================================================
+#
+# Purpose:
+#   Define input variables for Active Directory naming and supporting VPC
+#   resource identification.
+#
+# Naming Model:
+#   - dns_zone : Fully Qualified Domain Name for AD DNS namespace.
+#   - realm    : Kerberos realm (uppercase dns_zone).
+#   - netbios  : Short legacy domain name (<= 15 characters).
+#
+# Notes:
+#   - realm should equal upper(dns_zone) for Kerberos compatibility.
+#   - netbios should be uppercase and avoid special characters.
+#
+# ================================================================================
 
-# --------------------------------------------------------------------------------
-# DNS zone / AD domain (FQDN)
-# Used by Samba AD DC for DNS namespace and domain identity
-# --------------------------------------------------------------------------------
+
+# ================================================================================
+# SECTION: Active Directory DNS Zone (FQDN)
+# ================================================================================
+
 variable "dns_zone" {
-  description = "AD DNS zone / domain (e.g., rstudio.mikecloud.com)"
+  description = "Active Directory DNS zone (FQDN)"
   type        = string
   default     = "rstudio.mikecloud.com"
 }
 
-# --------------------------------------------------------------------------------
-# Kerberos realm (UPPERCASE)
-# Convention: match dns_zone but uppercase; required by Kerberos config
-# --------------------------------------------------------------------------------
+
+# ================================================================================
+# SECTION: Kerberos Realm
+# ================================================================================
+
 variable "realm" {
-  description = "Kerberos realm (usually DNS zone in UPPERCASE, e.g., RSTUDIO.MIKECLOUD.COM)"
+  description = "Kerberos realm (uppercase DNS zone)"
   type        = string
   default     = "RSTUDIO.MIKECLOUD.COM"
 }
 
-# --------------------------------------------------------------------------------
-# NetBIOS short domain name
-# Typically <= 15 characters, uppercase alphanumerics; used by legacy clients and some SMB flows
-# --------------------------------------------------------------------------------
+
+# ================================================================================
+# SECTION: NetBIOS Short Domain Name
+# ================================================================================
+
 variable "netbios" {
-  description = "NetBIOS short domain name (e.g., RSTUDIO)"
+  description = "NetBIOS short domain name"
   type        = string
   default     = "RSTUDIO"
+}
+
+
+# ================================================================================
+# SECTION: VPC Naming
+# ================================================================================
+
+variable "vpc_name" {
+  description = "Name for the VPC resource"
+  type        = string
+  default     = "rstudio-vpc"
 }

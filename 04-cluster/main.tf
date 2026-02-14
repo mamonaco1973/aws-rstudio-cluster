@@ -1,44 +1,68 @@
-# ==========================================================================================
-# AWS Provider + Data Sources
-# ------------------------------------------------------------------------------------------
+# ================================================================================
+# FILE: main.tf
+# ================================================================================
+#
 # Purpose:
-#   - Configures AWS provider for deployments in us-east-1 (N. Virginia)
-#   - Fetches existing infrastructure components via data sources:
-#       * Secrets Manager secrets (AD admin credentials)
-#       * Subnets (VM, public, AD placement)
-#       * VPC (Active Directory environment)
-#       * Latest custom AMI (for RStudio)
-#       * IAM instance profile (for EC2 role binding)
-#       * EFS file system (shared storage)
-# ==========================================================================================
+#   Configure AWS provider and retrieve existing infrastructure components
+#   required for RStudio deployment.
+#
+# Scope:
+#   - AWS provider configuration
+#   - Secrets Manager lookup (AD admin credentials)
+#   - Subnet and VPC discovery
+#   - Latest custom RStudio AMI lookup
+#   - IAM instance profile lookup
+#   - EFS file system lookup
+#
+# Notes:
+#   - Assumes core AD/VPC infrastructure already exists.
+#   - Data sources enforce alignment with existing tagged resources.
+#
+# ================================================================================
 
 
-# ------------------------------------------------------------------------------------------
-# AWS Provider
-# - Defines AWS provider region (override if deploying elsewhere)
-# ------------------------------------------------------------------------------------------
+# ================================================================================
+# SECTION: AWS Provider
+# ================================================================================
+
 provider "aws" {
-  region = "us-east-1" # Default: N. Virginia
+  region = "us-east-1"
 }
 
 
-# ------------------------------------------------------------------------------------------
-# Secrets Manager: AD Admin Credentials
-# - Retrieves existing secret with AD administrator credentials
-# ------------------------------------------------------------------------------------------
+# ================================================================================
+# SECTION: Secrets Manager - AD Admin Credentials
+# ================================================================================
+
 data "aws_secretsmanager_secret" "admin_secret" {
-  name = "admin_ad_credentials" # Secret name
+  name = "admin_ad_credentials_rstudio"
 }
 
 
-# ------------------------------------------------------------------------------------------
-# Subnet Lookups
-# - Retrieves subnets by tag for VM placement, public ALB, and AD VM
-# ------------------------------------------------------------------------------------------
+# ================================================================================
+# SECTION: VPC Lookup
+# ================================================================================
+
+data "aws_vpc" "ad_vpc" {
+  filter {
+    name   = "tag:Name"
+    values = [var.vpc_name]
+  }
+}
+
+
+# ================================================================================
+# SECTION: Subnet Lookups
+# ================================================================================
+
 data "aws_subnet" "vm_subnet_1" {
   filter {
     name   = "tag:Name"
     values = ["vm-subnet-1"]
+  }
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.ad_vpc.id]
   }
 }
 
@@ -47,12 +71,20 @@ data "aws_subnet" "vm_subnet_2" {
     name   = "tag:Name"
     values = ["vm-subnet-2"]
   }
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.ad_vpc.id]
+  }
 }
 
 data "aws_subnet" "pub_subnet_1" {
   filter {
     name   = "tag:Name"
     values = ["pub-subnet-1"]
+  }
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.ad_vpc.id]
   }
 }
 
@@ -61,33 +93,24 @@ data "aws_subnet" "pub_subnet_2" {
     name   = "tag:Name"
     values = ["pub-subnet-2"]
   }
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.ad_vpc.id]
+  }
 }
 
 data "aws_subnet" "ad_subnet" {
   filter {
     name   = "tag:Name"
-    values = ["ad-subnet"]
+    values = [var.vpc_name]
   }
 }
 
 
-# ------------------------------------------------------------------------------------------
-# VPC Lookup
-# - Retrieves the AD-specific VPC by tag
-# ------------------------------------------------------------------------------------------
-data "aws_vpc" "ad_vpc" {
-  filter {
-    name   = "tag:Name"
-    values = ["ad-vpc"]
-  }
-}
+# ================================================================================
+# SECTION: AMI Lookup - Latest RStudio Image
+# ================================================================================
 
-
-# ------------------------------------------------------------------------------------------
-# AMI Lookup: Latest RStudio AMI
-# - Selects most recent AMI owned by this account
-# - Matches AMIs with names starting "rstudio_ami"
-# ------------------------------------------------------------------------------------------
 data "aws_ami" "latest_rstudio_ami" {
   most_recent = true
 
@@ -101,25 +124,25 @@ data "aws_ami" "latest_rstudio_ami" {
     values = ["available"]
   }
 
-  owners = ["self"] # Restrict to AMIs in current AWS account
+  owners = ["self"]
 }
 
 
-# ------------------------------------------------------------------------------------------
-# IAM Instance Profile
-# - Looks up existing IAM profile used for EC2 secrets access
-# ------------------------------------------------------------------------------------------
+# ================================================================================
+# SECTION: IAM Instance Profile Lookup
+# ================================================================================
+
 data "aws_iam_instance_profile" "ec2_secrets_profile" {
-  name = "EC2SecretsInstanceProfile-${var.netbios}"
+  name = "tf-secrets-profile-${lower(var.netbios)}"
 }
 
 
-# ------------------------------------------------------------------------------------------
-# EFS File System
-# - Retrieves existing EFS by Name tag
-# ------------------------------------------------------------------------------------------
+# ================================================================================
+# SECTION: EFS File System Lookup
+# ================================================================================
+
 data "aws_efs_file_system" "efs" {
   tags = {
-    Name = "mcloud-efs"
+    Name = "rstudio-efs"
   }
 }

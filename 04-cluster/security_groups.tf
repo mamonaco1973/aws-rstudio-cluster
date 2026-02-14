@@ -1,43 +1,52 @@
-# ==========================================================================================
-# Security Groups: RStudio Server + Application Load Balancer (ALB)
-# ------------------------------------------------------------------------------------------
+# ================================================================================
+# FILE: security_groups.tf
+# ================================================================================
+#
 # Purpose:
-#   - Defines network access rules for RStudio Server (port 8787)
-#   - Defines network access rules for ALB (port 80)
-#   - Provides ICMP (ping) access for diagnostics
-#   - Allows all outbound traffic (default egress open)
-# ==========================================================================================
+#   Define security groups for RStudio application instances and the
+#   Application Load Balancer (ALB).
+#
+# Scope:
+#   - RStudio Server security group (TCP 8787 + ICMP)
+#   - ALB security group (TCP 80 + ICMP)
+#   - Default outbound access enabled
+#
+# Security Note:
+#   - Inbound rules currently allow 0.0.0.0/0.
+#   - Intended for lab/testing only.
+#   - Restrict to trusted CIDR ranges or VPN in production.
+#
+# ================================================================================
 
 
-# ------------------------------------------------------------------------------------------
-# Resource: Security Group for RStudio Server
-# - Allows inbound RStudio (port 8787) + ICMP
-# - Open to internet for testing (tighten in production)
-# ------------------------------------------------------------------------------------------
+# ================================================================================
+# SECTION: RStudio Server Security Group
+# ================================================================================
+
 resource "aws_security_group" "rstudio_sg" {
-  name        = "rstudio-security-group-${var.netbios}" # Security group name
-  description = "Allow RStudio Server (port 8787) access from the internet"
-  vpc_id      = data.aws_vpc.ad_vpc.id # Target VPC
+  name        = "rstudio-security-group"
+  description = "Allow RStudio Server (port 8787) access"
+  vpc_id      = data.aws_vpc.ad_vpc.id
 
-  # Ingress: RStudio web access (port 8787)
+  # Allow RStudio web access.
   ingress {
-    description = "Allow RStudio Server from anywhere"
+    description = "Allow RStudio Server (TCP 8787)"
     from_port   = 8787
     to_port     = 8787
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # WARNING: Open to all IPs
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Ingress: ICMP (ping)
+  # Allow ICMP for diagnostics.
   ingress {
-    description = "Allow ICMP (ping) from anywhere"
+    description = "Allow ICMP"
     from_port   = -1
     to_port     = -1
     protocol    = "icmp"
-    cidr_blocks = ["0.0.0.0/0"] # WARNING: Open to all IPs
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Egress: Allow all outbound traffic
+  # Allow all outbound traffic.
   egress {
     from_port   = 0
     to_port     = 0
@@ -47,35 +56,34 @@ resource "aws_security_group" "rstudio_sg" {
 }
 
 
-# ------------------------------------------------------------------------------------------
-# Resource: Security Group for Application Load Balancer (ALB)
-# - Allows inbound HTTP (port 80) + ICMP
-# - Open to internet for testing (tighten in production)
-# ------------------------------------------------------------------------------------------
-resource "aws_security_group" "alb_sg" {
-  name        = "alb-security-group-${var.netbios}" # Security group name
-  description = "Allow ALB (port 80) access from the internet"
-  vpc_id      = data.aws_vpc.ad_vpc.id # Target VPC
+# ================================================================================
+# SECTION: Application Load Balancer Security Group
+# ================================================================================
 
-  # Ingress: HTTP access (port 80)
+resource "aws_security_group" "alb_sg" {
+  name        = "rstudio-alb-security-group"
+  description = "Allow ALB (port 80) access"
+  vpc_id      = data.aws_vpc.ad_vpc.id
+
+  # Allow HTTP traffic.
   ingress {
-    description = "Allow HTTP from anywhere"
+    description = "Allow HTTP (TCP 80)"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] # WARNING: Open to all IPs
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Ingress: ICMP (ping)
+  # Allow ICMP for diagnostics.
   ingress {
-    description = "Allow ICMP (ping) from anywhere"
+    description = "Allow ICMP"
     from_port   = -1
     to_port     = -1
     protocol    = "icmp"
-    cidr_blocks = ["0.0.0.0/0"] # WARNING: Open to all IPs
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
-  # Egress: Allow all outbound traffic
+  # Allow all outbound traffic.
   egress {
     from_port   = 0
     to_port     = 0
