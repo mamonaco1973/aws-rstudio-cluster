@@ -102,7 +102,11 @@ data "aws_subnet" "pub_subnet_2" {
 data "aws_subnet" "ad_subnet" {
   filter {
     name   = "tag:Name"
-    values = [var.vpc_name]
+    values = ["ad-subnet"]
+  }
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.ad_vpc.id]
   }
 }
 
