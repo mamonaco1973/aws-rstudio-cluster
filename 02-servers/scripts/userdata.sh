@@ -34,7 +34,7 @@ which mount.efs
 # ---- AWS CLI v2 ----
 cd /tmp
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
+unzip -q awscliv2.zip
 sudo ./aws/install
 rm -f -r awscliv2.zip aws
 
@@ -203,3 +203,5 @@ cd /efs
 git clone https://github.com/mamonaco1973/aws-rstudio-cluster.git
 chmod -R 775 aws-rstudio-cluster
 chgrp -R ${force_group} aws-rstudio-cluster
+
+realm list
