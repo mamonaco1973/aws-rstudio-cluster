@@ -1,213 +1,161 @@
-# AWS RStudio Cluster with EFS-Backed Shared Libraries
+# RStudio Server Cluster on AWS: Auto Scaling, EFS and Active Directory
 
-This project extends the original **AWS Mini Active Directory** lab by deploying an **RStudio Server cluster** on Amazon Web Services (AWS). The cluster is designed for data science and analytics workloads, where multiple users need a scalable, domain-joined environment with consistent package management.
+An **RStudio Server** cluster for shared data-science work, built on the
+[AWS Mini Active Directory](https://github.com/mamonaco1973/aws-mini-ad) lab.
+An **Application Load Balancer** spreads users across an **Auto Scaling
+group** of RStudio nodes built from a **Packer** image; every node joins a
+**mini-AD** domain, so users sign in with their AD accounts, and mounts the
+same **Amazon EFS** file system for home directories, shared data and a
+shared R package library. A Windows host and a Samba gateway give admins
+access to the same files.
 
-![RStudio](rstudio.png)
+![RStudio Server](rstudio.png)
 
-Instead of relying only on per-user libraries stored on ephemeral instance disks, this solution integrates **Amazon Elastic File System (EFS)** as a shared package and data backend. This allows RStudio nodes in an Auto Scaling Group (ASG) to mount a common EFS location, ensuring that installed R packages and project files are accessible across all nodes.
+| Piece | Where | Role |
+|---|---|---|
+| **rstudio-alb** | public subnets | internet-facing ALB on HTTP 80; target group on 8787 with a one-day sticky cookie; health check `/` |
+| **rstudio-asg** | private VM subnets | `m5.large` nodes from the RStudio AMI, 2 to 4 (desired 2), ELB health checks; a CPU alarm (above 60% for two 30-second periods) adds a node |
+| **RStudio AMI** | built by Packer | Ubuntu 24.04 with R (`r-base`), RStudio Server (open source), SSSD/realmd, `amazon-efs-utils`, AWS CLI and SSM |
+| **efs-samba-gateway** | public subnet | Ubuntu 24.04, `t3.medium`; joined to AD; mounts EFS and shares `/efs` over Samba |
+| **windows-ad-admin** | public subnet | Windows Server, `t3.medium`; joined to AD; RSAT for managing users; maps the gateway's share as `Z:` |
+| **mini-AD** | private AD subnet | [`module-aws-mini-ad`](https://github.com/mamonaco1973/module-aws-mini-ad) Samba DC for `rstudio.mikecloud.com` (`RSTUDIO`); users, groups, POSIX IDs, DNS, Kerberos |
+| **rstudio-efs** | both VM subnets | encrypted EFS with a mount target in each |
+| **Secrets Manager** | us-east-1 | `admin_ad_credentials_rstudio` and one `*_ad_credentials_rstudio` secret per user |
+| **rstudio-vpc** | `10.0.0.0/23` | two public subnets (ALB, gateway, Windows), two private VM subnets and a private AD subnet; NAT gateway for the private ones |
 
-Key capabilities demonstrated:
+## Architecture
 
-1. **RStudio Server Cluster with Load Balancer** – RStudio Server (Open Source Edition) deployed across multiple EC2 instances, fronted by an Application Load Balancer (ALB) for high availability and seamless user access.  
-2. **EFS-Backed Shared Library** – EFS mounted at `/efs/rlibs` and injected into `.libPaths()`, enabling shared R package storage across the cluster.  
-3. **Mini Active Directory Integration** – A Samba-based mini-AD domain controller provides authentication and DNS, so RStudio logins are domain-based and centrally managed.  
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="architecture-dark.svg">
+  <img alt="RStudio users reach rstudio-alb, an internet-facing Application Load Balancer on HTTP port 80 with sticky sessions, which forwards to port 8787 on two to four m5.large nodes in the rstudio-asg Auto Scaling group, launched in private subnets from a Packer-built RStudio AMI. Each node reads the AD join password from Secrets Manager, joins the mini-AD Samba domain controller with SSSD, and mounts the rstudio-efs file system over NFS with TLS for /home, /efs/data and the shared R library /efs/rlibs. Administrators RDP to the windows-ad-admin host, which maps the efs-samba-gateway's SMB share as drive Z:; the gateway mounts the same EFS file system and is also joined to the domain." src="architecture-light.svg">
+</picture>
 
-Together, this architecture provides a reproducible, cloud-native RStudio environment where users get both personal home-directory libraries and access to a shared, scalable package repository.
+Regenerate with `python3 make_diagram.py`. The gateway and Windows host also
+join the domain; those lines are left off the diagram to keep it readable.
 
+- **`01-directory/`**: the VPC and subnets, NAT gateway, the AD passwords in
+  Secrets Manager, and the mini-AD DC with users and groups from
+  `scripts/users.json.template`.
+- **`02-servers/`**: EFS and its mount targets, the gateway and Windows
+  hosts, their IAM role and security groups.
+- **`03-packer/`**: the RStudio AMI (`rstudio_ami.pkr.hcl` and its install
+  scripts).
+- **`04-cluster/`**: the launch template, Auto Scaling group, scaling alarm
+  and policy, load balancer, and `scripts/rstudio_booter.sh`.
+- **`05-rsamples/`**: sample R scripts (plots and simulations) and
+  `packages.R`.
+- **`06-utils/`**: `getNextUID` / `getNextGID` scripts for adding AD users.
 
-![AWS RStudio Cluster](aws-rstudio-cluster.png)
+## How a node starts
+
+`rstudio_booter.sh` runs on every new node:
+
+1. Mounts the EFS root as `/efs` and `/efs/home` as `/home`, both with TLS.
+2. Reads the AD admin password from Secrets Manager and joins the domain
+   with `realm join`; SSSD uses short names and the POSIX IDs from AD.
+3. Gives `linux-admins` passwordless sudo and makes new home directories
+   `0700`.
+4. Writes `Rprofile.site` so every session's library path is the user's own
+   library, then `/efs/rlibs`, then the system library. `/efs/rlibs` belongs
+   to `rstudio-admins`, so admins install packages once for everyone and
+   other users install into their own library.
+
+Because `/home` lives on EFS, a user sees the same files whichever node the
+load balancer sends them to.
+
+## Users and groups
+
+| User | uidNumber | Groups | Notes |
+|---|---|---|---|
+| jsmith | 10001 | rstudio-users, us, linux-admins, rstudio-admins, Domain Admins | sudo; writes `/efs/rlibs` |
+| edavis | 10002 | rstudio-users, us | |
+| rpatel | 10003 | rstudio-users, india, linux-admins, rstudio-admins, Domain Admins | sudo; writes `/efs/rlibs` |
+| akumar | 10004 | rstudio-users, india | |
+
+| Group | gidNumber |
+|---|---|
+| rstudio-users | 10001 (every user's primary group) |
+| us | 10002 |
+| india | 10003 |
+| linux-admins | 10004 |
+| rstudio-admins | 10005 |
+
+Passwords are random and stored in Secrets Manager. Linux reads users and
+groups through SSSD using these `uidNumber` and `gidNumber` attributes, so
+they must be set on every account.
 
 ## Prerequisites
 
 * [An AWS Account](https://aws.amazon.com/console/)
-* [Install AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) 
-* [Install Latest Terraform](https://developer.hashicorp.com/terraform/install)
-* [Install Latest Packer](https://developer.hashicorp.com/packer/install)
+* [Install AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
+* [Install Terraform](https://developer.hashicorp.com/terraform/install)
+* [Install Packer](https://developer.hashicorp.com/packer/install)
+* [Install jq](https://jqlang.github.io/jq/download/)
 
-If this is your first time watching our content, we recommend starting with this video: [AWS + Terraform: Easy Setup](https://youtu.be/BCMQo0CB9wk). It provides a step-by-step guide to properly configure Terraform, Packer, and the AWS CLI.
+If this is your first time watching our content, we recommend starting with
+this video: [AWS + Terraform: Easy Setup](https://youtu.be/BCMQo0CB9wk).
 
-
-## Build WorkFlow
-
-![Build WorkFlow](build-workflow.png)
-
-
-## Download this Repository
+## Deploy
 
 ```bash
 git clone https://github.com/mamonaco1973/aws-rstudio-cluster.git
 cd aws-rstudio-cluster
+./apply.sh
 ```
 
-## Build the Code
+`apply.sh` applies `01-directory`, then `02-servers`, builds the RStudio AMI
+with Packer, and applies `04-cluster`. It ends by running `validate.sh`:
 
-Run [check_env](check_env.sh) to validate your environment, then run [apply](apply.sh) to provision the infrastructure.
-
-```bash
-develop-vm:~/aws-rstudio-cluster$ ./apply.sh
-NOTE: Validating that required commands are found in your PATH.
-NOTE: aws is found in the current PATH.
-NOTE: terraform is found in the current PATH.
-NOTE: All required commands are available.
-NOTE: Checking AWS cli connection.
-NOTE: Successfully logged into AWS.
-Initializing the backend...
-Initializing provider plugins...
-- Reusing previous version of hashicorp/random from the dependency lock file
-- Reusing previous version of hashicorp/aws from the dependency lock file
-- Using previously-installed hashicorp/random v3.7.1
-- Using previously-installed hashicorp/aws v5.89.0
-
-Terraform has been successfully initialized!
-
-You may now begin working with Terraform. Try running "terraform plan" to see
-any changes that are required for your infrastructure. All Terraform commands
-should now work.
 ```
-### Build Results
+============================================================================
+RStudio AD Lab - Validation Output
+============================================================================
 
-When the deployment completes, the following resources are created:
+NOTE: Windows RDP Host FQDN:       ec2-x-x-x-x.compute-1.amazonaws.com
+NOTE: Linux Gateway Public:        ec2-x-x-x-x.compute-1.amazonaws.com
+NOTE: RStudio ALB Endpoint:        http://rstudio-alb-123456789.us-east-1.elb.amazonaws.com
+```
 
-- **Networking:**  
-  - A VPC with public and private subnets  
-  - Internet Gateway and NAT Gateway for controlled outbound access  
-  - Route tables configured to direct traffic through NAT for private subnets  
-  - DNS resolution provided by the Mini-AD domain controller  
+## Try it
 
-- **Security & IAM:**  
-  - Security groups for the domain controller, RStudio cluster nodes, ALB, and EFS mount targets  
-  - IAM roles and instance profiles enabling EC2 nodes to use AWS Systems Manager and mount EFS  
-  - Secrets stored in AWS Secrets Manager for AD administrator and RStudio test user credentials  
+1. Open the **RStudio ALB Endpoint** and sign in as one of the users above,
+   with the password from its `*_ad_credentials_rstudio` secret.
+2. Open a sample from `05-rsamples` and run it. The gateway clones this
+   repository into `/efs`, so the samples are there on every node.
+3. Add a user:
+   1. RDP to `windows-ad-admin` as `jsmith` or `rpatel` and open **Active
+      Directory Users and Computers** with **View > Advanced Features** on.
+   2. Under the domain's **Users** container, create the user with a UPN
+      such as `mcloud@rstudio.mikecloud.com` and an initial password.
 
-- **Active Directory Server:**  
-  - Ubuntu EC2 instance running Samba 4 as a Domain Controller and DNS server  
-  - Configured Kerberos realm and NetBIOS name for centralized authentication  
-  - Integrated with the RStudio cluster for domain-based logins  
+      ![New user in Active Directory Users and Computers](windows.png)
 
-- **Amazon EFS:**  
-  - Elastic File System provisioned with mount targets in each private subnet  
-  - Security group allowing NFS traffic (TCP/2049) from RStudio nodes  
-  - Mounted at `/efs/rlibs` and injected into `.libPaths()` for shared R package storage  
+   3. Run `Z:\aws-rstudio-cluster\06-utils\getNextUID.bat` for the next free
+      `uidNumber`.
+   4. In **Attribute Editor**, set `uidNumber` to that value, `gidNumber` to
+      `10001`, and `uid` to the login name.
+   5. Under **Member Of**, add `rstudio-users` and any other groups.
+   6. From an SSM session on `efs-samba-gateway`, check the mapping with
+      `id mcloud`:
 
-- **Custom RStudio AMI:**  
-  - Built with Packer to include R, RStudio Server (Open Source Edition), and bootstrap scripts  
-  - Configured to integrate with domain authentication  
-  - Ready for deployment across the autoscaling cluster  
+      ![id output on the Linux gateway](linux.png)
 
-- **RStudio Autoscaling Cluster:**  
-  - Auto Scaling Group of EC2 instances using the custom AMI  
-  - Application Load Balancer (ALB) distributing traffic to RStudio nodes  
-  - Domain-joined at launch, with consistent access to EFS-backed shared libraries  
-  - Provides high availability and elasticity for R workloads  
+   7. Sign in to RStudio as the new user. They can't write `/efs/rlibs`
+      until they're in `rstudio-admins`.
 
-- **Validation:**  
-  - Automated checks via `./validate.sh` confirm DNS resolution, AD integration, and cluster health  
-  - Ensures that users can log in through the ALB and access both personal and shared R libraries  
-
-### Users and Groups
-
-As part of this project, when the domain controller is provisioned, a set of sample **users** and **groups** are automatically created through Terraform-provisioned scripts running on the mini-ad server. These resources are intended for **testing and demonstration purposes**, showcasing how to automate user and group provisioning in a self-managed Active Directory environment.
-
-
-#### Groups Created
-
-| Group Name    | Group Category | Group Scope | gidNumber |
-|---------------|----------------|-------------|-----------|
-| rstudio-users  | Security       | Universal   | 10001     |
-| india         | Security       | Universal   | 10002     |
-| us            | Security       | Universal   | 10003     |
-| linux-admins  | Security       | Universal   | 10004     |
-| rstudio-admins  | Security       | Universal   | 10005     |
-
-#### Users Created and Group Memberships
-
-| Username | Full Name   | uidNumber | gidNumber | Groups Joined                    |
-|----------|-------------|-----------|-----------|-----------------------------------|
-| jsmith   | John Smith  | 10001     | 10001     | rstudio-users, us, linux-admins,rstudio-admins    |
-| edavis   | Emily Davis | 10002     | 10001     | rstudio-users, us                  |
-| rpatel   | Raj Patel   | 10003     | 10001     | rstudio-users, india, linux-admins, rstudio-admins |
-| akumar   | Amit Kumar  | 10004     | 10001     | rstudio-users, india               |
-
-
-#### Understanding `uidNumber` and `gidNumber` for Linux Integration
-
-The **`uidNumber`** (User ID) and **`gidNumber`** (Group ID) attributes are critical when integrating **Active Directory** with **Linux systems**, particularly in environments where **SSSD** ([System Security Services Daemon](https://sssd.io/)) or similar services are used for identity management. These attributes allow Linux hosts to recognize and map Active Directory users and groups into the **POSIX** (Portable Operating System Interface) user and group model.
-
-### Creating a New RStudio User
-
-Follow these steps to provision a new user in the Active Directory domain and validate their access to the RStudio cluster:
-
-1. **Connect to the Domain Controller**  
-   - Log into the **`windows-ad-admin`** server via Remote Desktop (RDP).  
-   - Use the `rpatel` or `jsmith` credentials that were provisioned during cluster deployment.  
-
-2. **Launch Active Directory Users and Computers (ADUC)**  
-   - From the Windows Start menu, open **“Active Directory Users and Computers.”**  
-   - Enable **Advanced Features** under the **View** menu. This ensures you can access the extended attribute tabs (e.g., UID/GID mappings).  
-
-3. **Navigate to the Users Organizational Unit (OU)**  
-   - In the left-hand tree, expand the domain (e.g., `rstudio.mikecloud.com`).  
-   - Select the **Users** OU where all cluster accounts are managed.  
-
-4. **Create a New User Object**  
-   - Right-click the Users OU and choose **New → User.**  
-   - Provide the following:  
-     - **Full Name:** Descriptive user name (e.g., “Mike Cloud”).  
-     - **User Logon Name (User Principal Name / UPN):** e.g., `mcloud@rstudio.mikecloud.com`.  
-     - **Initial Password:** Set an initial password.
-
-![Windows](windows.png)
-
-5. **Assign a Unique UID Number**  
-   - Open **PowerShell** on the AD server.  
-   - Run the script located at:  
-     ```powershell
-     Z:\efs\aws-rstudio-cluster\06-utils\getNextUID.bat
-     ```  
-   - This script returns the next available **`uidNumber`** to assign to the new account.  
-
-6. **Configure Advanced Attributes**  
-   - In the new user’s **Properties** dialog, open the **Attribute Editor** tab.  
-   - Set the following values:  
-     - `gidNumber` → **10001** (the shared GID for the `rstudio-users` group).  
-     - `uid` → match the user’s AD login ID (e.g., `rpatel`).  
-     - `uidNumber` → the unique numeric value returned from `getNextUID.ps1`.  
-
-7. **Add Group Memberships**  
-   - Go to the **Member Of** tab.  
-   - Add the user to the following groups:  
-     - **rstudio-users** → grants standard RStudio access.  
-     - **us** (or other geographic/departmental group as applicable).  
-
-8. **Validate User on Linux**  
-   - Open an **AWS Systems Manager (SSM)** session to the **`efs-samba-gateway`** instance.  
-   - Run the following command to confirm the user’s identity mapping:  
-     ```bash
-     id mcloud
-     ```  
-   - Verify that the output shows the correct **UID**, **GID**, and group memberships (e.g., `rstudio-users`).  
-
-![Linux](linux.png)
-
-9. **Validate RStudio Access**  
-   - Open the RStudio cluster’s Application Load Balancer (ALB) URL in a browser (e.g., `https://rstudio-alb-xxxxxx.us-east-1.elb.amazonaws.com`).  
-   - Log in with the new AD credentials.  
-
-10. **Verify Permissions**  
-   - By default, the new user is **not** a member of the `rstudio-admin` group.  
-   - Attempting to install packages into the **shared library path `/efs/rlibs`** should fail with a **“Permission denied”** error.  
-   - This confirms the user is restricted to installing packages in their **personal user library** only.  
-
----
-
-✅ **Note:** If you need the user to have administrative rights (e.g., the ability to install packages into the shared library), add them to the **rstudio-admin** group in addition to `rstudio-users`.
- 
-### Clean Up Infrastructure  
-
-When you are finished testing, you can remove all provisioned resources with:  
+## Teardown
 
 ```bash
 ./destroy.sh
 ```
 
-This will use Terraform to delete the VPC, EC2 instances, IAM roles, security groups, and any other infrastructure created by the project. Secrets stored in AWS Secrets Manager will also be deleted unless retention policies are configured.
+## Notes
+
+- **Lab only.** RStudio is served over plain HTTP, so passwords cross the
+  internet unencrypted. RDP (3389), SSH (22) and SMB (445) on the Windows
+  host and gateway, and port 8787 on the nodes, are open to `0.0.0.0/0`, and
+  so is NFS on the EFS security group.
+- The Auto Scaling group only has a scale-up policy, so it grows to 4 nodes
+  under load and doesn't shrink back on its own.
+- The old README listed `india` as 10002 and `us` as 10003; the template
+  sets `us` to 10002 and `india` to 10003.
